@@ -1,0 +1,1 @@
+Place externally supplied study assignements (PDF, Homeworks, Classworks, etc) here.
