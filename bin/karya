@@ -1,9 +1,694 @@
-#!/usr/bin/env bash
-echo "Karya bootstrap v1.0"
-echo "Planned CLI grammar:"
-echo "  karya <command> <entity> [options]"
-echo ""
-echo "Examples:"
-echo "  karya init workspace"
-echo "  karya create project --type learning --mps learning/mit/6.828"
-echo "  karya publish project"
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import datetime
+import json
+import re
+import shutil
+import subprocess
+import sys
+import uuid
+from pathlib import Path
+
+WORKSPACE_FILE = "WORKSPACE.md"
+PROJECT_FILE = "PROJECT.md"
+TEMPLATES_DIR = "templates"
+SUPPORTED_TYPES = {"learning", "experiment", "project"}
+
+WORKSPACE_TEMPLATE = """# Workspace
+
+Managed by Karya
+
+## Categories
+
+- learning
+- experiments
+- projects
+- archive
+"""
+
+PROJECT_TEMPLATE_KEYS = ["Name", "Type", "MPS", "Created", "Status"]
+STATE_CHECKPOINT_DIR = ".karya/state-checkpoints"
+DEFAULT_CHECKPOINT_NAME = "latest"
+SCRIPT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def fail(message: str) -> None:
+    print(f"Error: {message}", file=sys.stderr)
+    sys.exit(1)
+
+
+def walk_up_for_file(start_path: Path, filename: str) -> Path | None:
+    current = start_path.resolve()
+    while True:
+        if (current / filename).exists():
+            return current
+        if current.parent == current:
+            return None
+        current = current.parent
+
+
+def find_template_source(workspace_root: Path, project_type: str) -> Path:
+    candidate = workspace_root / TEMPLATES_DIR / project_type
+    if candidate.exists():
+        return candidate
+
+    installed_candidate = SCRIPT_ROOT / TEMPLATES_DIR / project_type
+    if installed_candidate.exists():
+        return installed_candidate
+
+    fail(f"Template for type '{project_type}' not found at {candidate} or {installed_candidate}")
+
+
+def load_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def write_text(path: Path, text: str) -> None:
+    path.write_text(text, encoding="utf-8")
+
+
+def sanitize_checkpoint_name(name: str | None) -> str:
+    if name is None or not name.strip():
+        return DEFAULT_CHECKPOINT_NAME
+    sanitized = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in name.strip())
+    if not sanitized:
+        fail("Checkpoint name must contain at least one alphanumeric character.")
+    return sanitized
+
+
+def get_checkpoint_file(git_root: Path, checkpoint_name: str) -> Path:
+    return git_root / STATE_CHECKPOINT_DIR / f"{checkpoint_name}.json"
+
+
+def get_checkpoint_patch_file(git_root: Path, checkpoint_name: str) -> Path:
+    return git_root / STATE_CHECKPOINT_DIR / f"{checkpoint_name}.patch"
+
+
+def update_state_directory(git_root: Path) -> Path:
+    state_dir = git_root / STATE_CHECKPOINT_DIR
+    state_dir.mkdir(parents=True, exist_ok=True)
+    return state_dir
+
+
+def get_git_branch(git_root: Path) -> str | None:
+    result = run_git_command(["rev-parse", "--abbrev-ref", "HEAD"], cwd=git_root)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def get_git_commit_hash(git_root: Path) -> str | None:
+    result = run_git_command(["rev-parse", "HEAD"], cwd=git_root)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def list_git_status(git_root: Path) -> list[str]:
+    result = run_git_command(["status", "--porcelain"], cwd=git_root)
+    if result.returncode != 0:
+        return []
+    return [line for line in result.stdout.splitlines() if line.strip()]
+
+
+def save_workstate(checkpoint_name: str | None = None, description: str | None = None) -> None:
+    git_root = find_git_root(Path.cwd())
+    if git_root is None:
+        fail("No Git repository found. Run 'karya workstate save' from inside a repository.")
+
+    checkpoint = sanitize_checkpoint_name(checkpoint_name)
+    update_state_directory(git_root)
+    checkpoint_path = get_checkpoint_file(git_root, checkpoint)
+    patch_path = get_checkpoint_patch_file(git_root, checkpoint)
+
+    branch = get_git_branch(git_root) or "unknown"
+    commit_hash = get_git_commit_hash(git_root) or ""
+    status_lines = list_git_status(git_root)
+    uncommitted_changes = bool(status_lines)
+
+    if uncommitted_changes:
+        staged = run_git_command(["diff", "--patch", "--staged"], cwd=git_root)
+        unstaged = run_git_command(["diff", "--patch"], cwd=git_root)
+        patch_path.write_text((staged.stdout or "") + (unstaged.stdout or ""), encoding="utf-8")
+    elif patch_path.exists():
+        patch_path.unlink()
+
+    checkpoint_data = {
+        "checkpoint_id": uuid.uuid4().hex,
+        "checkpoint_name": checkpoint,
+        "description": description or "",
+        "created_at": datetime.datetime.now().isoformat(),
+        "branch": branch,
+        "head_commit": commit_hash,
+        "remote_url": git_remote_get_url(git_root) or "",
+        "uncommitted_changes": uncommitted_changes,
+        "status_lines": status_lines,
+        "patch_file": str(patch_path.relative_to(git_root)) if uncommitted_changes else None,
+    }
+    checkpoint_path.write_text(json.dumps(checkpoint_data, indent=2), encoding="utf-8")
+
+    print(f"Saved work state checkpoint '{checkpoint}' to {checkpoint_path}")
+    if uncommitted_changes:
+        print(f"Uncommitted changes were captured in {patch_path}")
+
+
+def resume_workstate(checkpoint_name: str | None = None, apply_patch: bool = False) -> None:
+    git_root = find_git_root(Path.cwd())
+    if git_root is None:
+        fail("No Git repository found. Run 'karya workstate resume' from inside a repository.")
+
+    checkpoint = sanitize_checkpoint_name(checkpoint_name)
+    checkpoint_path = get_checkpoint_file(git_root, checkpoint)
+    if not checkpoint_path.exists():
+        fail(f"Checkpoint not found: {checkpoint_path}")
+
+    checkpoint_data = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    current_branch = get_git_branch(git_root)
+    print(f"Checkpoint: {checkpoint_data['checkpoint_name']}")
+    print(f"Created: {checkpoint_data['created_at']}")
+    print(f"Branch: {checkpoint_data['branch']}")
+    print(f"Commit: {checkpoint_data['head_commit']}")
+    if checkpoint_data["remote_url"]:
+        print(f"Remote: {checkpoint_data['remote_url']}")
+    print(f"Uncommitted changes saved: {checkpoint_data['uncommitted_changes']}")
+
+    if checkpoint_data["status_lines"]:
+        print("Git status:")
+        for line in checkpoint_data["status_lines"]:
+            print(f"  {line}")
+
+    if current_branch != checkpoint_data["branch"]:
+        print("")
+        print("To resume on this repository, run:")
+        print(f"  git checkout {checkpoint_data['branch']}")
+
+    if checkpoint_data["remote_url"] and git_remote_get_url(git_root) != checkpoint_data["remote_url"]:
+        print("")
+        print("The current repository remote differs from the saved checkpoint remote.")
+
+    patch_file = checkpoint_data.get("patch_file")
+    if patch_file:
+        patch_path = git_root / patch_file
+        if patch_path.exists():
+            if apply_patch or ask_confirmation("Apply saved patch now?", default=False):
+                patch_result = run_git_command(["apply", "--index", str(patch_path)], cwd=git_root)
+                if patch_result.returncode != 0:
+                    fail(f"Failed to apply patch: {patch_result.stderr.strip()}")
+                print(f"Applied patch from {patch_path}")
+            else:
+                print(f"Saved patch file available at: {patch_path}")
+        else:
+            print(f"Warning: saved patch file not found: {patch_path}")
+
+
+def list_workstate() -> None:
+    git_root = find_git_root(Path.cwd())
+    if git_root is None:
+        fail("No Git repository found. Run 'karya workstate list' from inside a repository.")
+
+    state_dir = git_root / STATE_CHECKPOINT_DIR
+    if not state_dir.exists():
+        print("No saved work state checkpoints found.")
+        return
+
+    files = sorted(state_dir.glob("*.json"))
+    if not files:
+        print("No saved work state checkpoints found.")
+        return
+
+    print("Saved work state checkpoints:")
+    for file_path in files:
+        data = json.loads(file_path.read_text(encoding="utf-8"))
+        print(f"- {data.get('checkpoint_name', file_path.stem)}: {data.get('created_at', 'unknown')} ({file_path.name})")
+
+
+def init_workspace() -> None:
+    root = Path.cwd()
+    workspace_path = root / WORKSPACE_FILE
+    if workspace_path.exists():
+        fail(f"Workspace already initialized at {workspace_path}")
+
+    workspace_path.write_text(WORKSPACE_TEMPLATE, encoding="utf-8")
+    for directory in ["learning", "experiments", "projects", "archive"]:
+        (root / directory).mkdir(parents=True, exist_ok=True)
+
+    print(f"Initialized workspace at {root}")
+
+
+def normalize_mps(mps: str) -> Path:
+    candidate = Path(mps.strip("/"))
+    if candidate.is_absolute() or not candidate.parts:
+        fail("MPS must be a relative path like learning/mit/6.828")
+    if len(candidate.parts) < 2:
+        fail("MPS must include at least two path components, e.g. learning/mit/6.828")
+    return candidate
+
+
+def subst_project_metadata(content: str, project_name: str, project_type: str, mps: str, created: str) -> str:
+    lines = []
+    for line in content.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("Name:"):
+            lines.append(f"Name: {project_name}")
+        elif stripped.startswith("Type:"):
+            lines.append(f"Type: {project_type}")
+        elif stripped.startswith("MPS:"):
+            lines.append(f"MPS: {mps}")
+        elif stripped.startswith("Created:"):
+            lines.append(f"Created: {created}")
+        elif stripped.startswith("Status:"):
+            lines.append("Status: Active")
+        else:
+            lines.append(line)
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def create_project(project_type: str, mps: str) -> None:
+    if project_type not in SUPPORTED_TYPES:
+        fail(f"Unsupported project type: {project_type}")
+
+    workspace_root = walk_up_for_file(Path.cwd(), WORKSPACE_FILE)
+    if workspace_root is None:
+        fail("No workspace found. Run 'karya init workspace' from inside a workspace.")
+
+    template_source = find_template_source(workspace_root, project_type)
+    normalized = normalize_mps(mps)
+    project_root = workspace_root / normalized
+    if project_root.exists():
+        fail(f"Project path already exists: {project_root}")
+
+    project_root.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(template_source, project_root)
+
+    project_name = normalized.name
+    created_date = datetime.date.today().isoformat()
+
+    project_md_path = project_root / PROJECT_FILE
+    if project_md_path.exists():
+        project_md_text = load_text(project_md_path)
+        project_md_text = subst_project_metadata(project_md_text, project_name, project_type, str(normalized), created_date)
+        write_text(project_md_path, project_md_text)
+
+    readme_path = project_root / "README.md"
+    if readme_path.exists():
+        readme_text = load_text(readme_path)
+        write_text(readme_path, readme_text.replace("PROJECT_NAME", project_name))
+
+    print(f"Created project '{project_name}' at {project_root}")
+    
+    init_result = run_git_command(["init"], cwd=project_root)
+    if init_result.returncode != 0:
+        fail(f"Failed to initialize git repository: {init_result.stderr}")
+        
+    add_result = run_git_command(["add", "."], cwd=project_root)
+    if add_result.returncode != 0:
+        fail(f"Failed to stage files: {add_result.stderr}")
+        
+    commit_result = run_git_command(["commit", "-m", f"Initial project skeleton for {project_name}"], cwd=project_root)
+    if commit_result.returncode != 0:
+        fail(f"Failed to create initial commit: {commit_result.stderr}")
+        
+    print(f"Initialized git repository and created initial commit for '{project_name}'")
+
+
+def run_git_command(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=str(cwd),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def discover_git_remote(project_root: Path) -> str | None:
+    result = run_git_command(["rev-parse", "--show-toplevel"], cwd=project_root)
+    if result.returncode != 0:
+        return None
+
+    git_root = Path(result.stdout.strip())
+    if not git_root.exists() or git_root not in project_root.parents and git_root != project_root:
+        return None
+
+    remote_result = run_git_command(["config", "--get", "remote.origin.url"], cwd=git_root)
+    if remote_result.returncode != 0:
+        return None
+    remote = remote_result.stdout.strip()
+    return remote or None
+
+
+def find_git_root(project_root: Path) -> Path | None:
+    result = run_git_command(["rev-parse", "--show-toplevel"], cwd=project_root)
+    if result.returncode != 0:
+        return None
+    git_root = Path(result.stdout.strip())
+    if not git_root.exists():
+        return None
+    if git_root not in project_root.parents and git_root != project_root:
+        return None
+    return git_root
+
+
+def ask_confirmation(prompt: str, default: bool = False) -> bool:
+    if not sys.stdin.isatty():
+        return default
+
+    suffix = " [Y/n]: " if default else " [y/N]: "
+    answer = input(prompt + suffix).strip().lower()
+    if answer == "":
+        return default
+    return answer in {"y", "yes"}
+
+
+def git_remote_is_empty(git_root: Path) -> bool | None:
+    result = run_git_command(["ls-remote", "origin"], cwd=git_root)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() == ""
+
+
+def git_remote_get_url(git_root: Path) -> str | None:
+    result = run_git_command(["remote", "get-url", "origin"], cwd=git_root)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def git_remote_add_origin(git_root: Path, repo_url: str) -> bool:
+    existing = git_remote_get_url(git_root)
+    if existing is not None:
+        return existing == repo_url
+    result = run_git_command(["remote", "add", "origin", repo_url], cwd=git_root)
+    return result.returncode == 0
+
+
+def git_push_current_branch(git_root: Path) -> bool:
+    result = run_git_command(["push", "-u", "origin", "HEAD"], cwd=git_root)
+    return result.returncode == 0
+
+
+def gh_available() -> bool:
+    result = subprocess.run(["gh", "--version"], capture_output=True, text=True)
+    if result.returncode != 0:
+        return False
+    auth = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True)
+    if auth.returncode != 0:
+        print("GitHub CLI is not authenticated. Please run 'gh auth login'.")
+        return False
+    return True
+
+
+def parse_github_repo_from_url(url: str) -> tuple[str, str] | None:
+    match = re.search(r"github\.com[:/](?P<owner>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?$", url)
+    if not match:
+        return None
+    return match.group("owner"), match.group("repo")
+
+
+def gh_repo_exists(owner: str, repo: str) -> bool | None:
+    result = subprocess.run(["gh", "repo", "view", f"{owner}/{repo}"], capture_output=True, text=True)
+    if result.returncode == 0:
+        return True
+    stderr = result.stderr.lower()
+    if "not found" in stderr or "could not resolve" in stderr or "unable to" in stderr:
+        return False
+    return None
+
+
+def gh_create_repo(owner: str, repo: str, private: bool = False) -> bool:
+    args = ["gh", "repo", "create", f"{owner}/{repo}", "--confirm"]
+    if private:
+        args.insert(3, "--private")
+    result = subprocess.run(args, capture_output=True, text=True)
+    return result.returncode == 0
+
+
+def mps_to_repo_slug(mps: str) -> str:
+    return mps.strip("/").replace("/", "-")
+
+
+def parse_project_mps(project_md_text: str) -> str | None:
+    for line in project_md_text.splitlines():
+        if line.startswith("MPS:"):
+            return line.split(":", 1)[1].strip()
+    return None
+
+
+def derive_github_repo_url(mps: str, owner: str | None = None) -> str:
+    repo_slug = mps_to_repo_slug(mps)
+    if owner:
+        return f"git@github.com:{owner}/{repo_slug}.git"
+    return f"https://github.com/your-account/{repo_slug}.git"
+
+
+def publish_project(
+    mps: str | None = None,
+    project_type: str | None = None,
+    repo_url_override: str | None = None,
+    owner: str | None = None,
+) -> None:
+    if project_type is not None and project_type not in SUPPORTED_TYPES:
+        fail(f"Unsupported project type: {project_type}")
+
+    if mps is not None:
+        workspace_root = walk_up_for_file(Path.cwd(), WORKSPACE_FILE)
+        if workspace_root is None:
+            fail("No workspace found. Run 'karya publish project' from inside a workspace.")
+        normalized = normalize_mps(mps)
+        project_root = workspace_root / normalized
+        if not project_root.exists():
+            fail(f"Project path not found: {project_root}")
+    else:
+        project_root = walk_up_for_file(Path.cwd(), PROJECT_FILE)
+        if project_root is None:
+            fail("No project found. Run this command from inside a project directory or pass --mps.")
+
+    project_md_path = project_root / PROJECT_FILE
+    if not project_md_path.exists():
+        fail(f"Missing {PROJECT_FILE} in project root {project_root}")
+
+    project_md_text = load_text(project_md_path)
+    if project_type is not None:
+        for line in project_md_text.splitlines():
+            if line.startswith("Type:"):
+                actual_type = line.split(":", 1)[1].strip()
+                if actual_type != project_type:
+                    fail(f"Published project type mismatch: expected {project_type}, found {actual_type}")
+                break
+
+    git_root = find_git_root(project_root)
+    remote_repo_url = discover_git_remote(git_root) if git_root is not None else None
+    published_date = datetime.date.today().isoformat()
+
+    if repo_url_override is not None:
+        repo_url = repo_url_override
+        print(f"Using explicit repository URL: {repo_url}")
+        print("Note: Karya does not create remote repositories. Create this repository on GitHub before pushing.")
+    elif remote_repo_url is not None:
+        repo_url = remote_repo_url
+    else:
+        project_mps = mps
+        if project_mps is None:
+            project_mps = parse_project_mps(project_md_text)
+        if not project_mps:
+            repo_url = None
+        else:
+            repo_url = derive_github_repo_url(project_mps, owner)
+            if owner is not None:
+                print(f"Derived repository URL from MPS: {repo_url}")
+                print("Note: Karya does not create remote repositories. Create this repository on GitHub before pushing.")
+            else:
+                print(f"Suggested repository URL from MPS: {repo_url}")
+                repo_url = None
+
+    if git_root is None:
+        print("Warning: no Git repository detected for this project. Publish will only update metadata.")
+    else:
+        if remote_repo_url is None and repo_url is None:
+            print("Warning: Git repository detected, but no remote origin is configured and no repository URL was derived.")
+        elif remote_repo_url is None and repo_url is not None:
+            if not gh_available():
+                print("Warning: GitHub CLI not available. Create the repository manually on GitHub before pushing.")
+            else:
+                remote_info = parse_github_repo_from_url(repo_url)
+                if remote_info is None:
+                    print("Warning: derived repo URL is not a GitHub URL. Create the remote manually if needed.")
+                else:
+                    owner_name, repo_name = remote_info
+                    repo_exists = gh_repo_exists(owner_name, repo_name)
+                    if repo_exists is False:
+                        if ask_confirmation(f"GitHub repository {owner_name}/{repo_name} does not exist. Create it?"):
+                            if not gh_create_repo(owner_name, repo_name):
+                                fail("Failed to create GitHub repository.")
+                            print(f"Created GitHub repository {owner_name}/{repo_name}.")
+                            if not git_remote_add_origin(git_root, repo_url):
+                                fail("Failed to add remote origin.")
+                            if ask_confirmation("Push local branch to new remote now?", default=True):
+                                if not git_push_current_branch(git_root):
+                                    fail("Failed to push local branch to remote origin.")
+                                print("Pushed local branch to remote origin.")
+                            else:
+                                print("Remote created. Run 'git push -u origin HEAD' when ready.")
+                    elif repo_exists is True:
+                        if git_remote_get_url(git_root) is None:
+                            if not git_remote_add_origin(git_root, repo_url):
+                                fail("Failed to add remote origin.")
+                            print(f"Set origin to {repo_url}.")
+                        if ask_confirmation("Push local branch to remote now?", default=True):
+                            if not git_push_current_branch(git_root):
+                                fail("Failed to push local branch to remote origin.")
+                            print("Pushed local branch to remote origin.")
+                    else:
+                        print("Unable to determine GitHub repository existence. Continuing with metadata update.")
+        elif remote_repo_url is not None:
+            remote_empty = git_remote_is_empty(git_root)
+            if remote_empty is True:
+                print(f"Remote repository appears empty: {remote_repo_url}")
+                if not ask_confirmation("Reuse this empty repository for publish?"):
+                    fail("Publish aborted by user.")
+                print("Using existing empty remote repository.")
+                if ask_confirmation("Push local branch to remote now?", default=True):
+                    if not git_push_current_branch(git_root):
+                        fail("Failed to push local branch to remote origin.")
+                    print("Pushed local branch to remote origin.")
+            elif remote_empty is False:
+                print(f"Remote repository has existing history: {remote_repo_url}")
+            else:
+                print(f"Unable to determine remote repository state for {remote_repo_url}. Continuing with metadata update.")
+
+    lines = project_md_text.splitlines()
+    new_lines = []
+    added_published = False
+
+    for line in lines:
+        if line.startswith("Status:"):
+            new_lines.append("Status: Published")
+        elif line.startswith("Repository:") and repo_url:
+            new_lines.append(f"Repository: {repo_url}")
+        else:
+            new_lines.append(line)
+
+    if not any(line.startswith("Status:") for line in lines):
+        new_lines.insert(0, "Status: Published")
+
+    if not any(line.startswith("Published:") for line in lines):
+        for idx, line in enumerate(new_lines):
+            if line.startswith("Status:"):
+                new_lines.insert(idx + 1, f"Published: {published_date}")
+                added_published = True
+                break
+        if not added_published:
+            new_lines.append(f"Published: {published_date}")
+
+    if repo_url and not any(line.startswith("Repository:") for line in lines):
+        inserted = False
+        for idx, line in enumerate(new_lines):
+            if line.startswith("Visibility:"):
+                new_lines.insert(idx, f"Repository: {repo_url}")
+                inserted = True
+                break
+        if not inserted:
+            new_lines.append(f"Repository: {repo_url}")
+
+    write_text(project_md_path, "\n".join(new_lines).rstrip() + "\n")
+    print(f"Published project at {project_root}")
+    if repo_url:
+        print(f"Repository metadata updated to {repo_url}")
+
+
+def remove_project(mps: str, project_type: str | None = None) -> None:
+    workspace_root = walk_up_for_file(Path.cwd(), WORKSPACE_FILE)
+    if workspace_root is None:
+        fail("No workspace found. Run 'karya remove project' from inside a workspace.")
+
+    normalized = normalize_mps(mps)
+    project_root = workspace_root / normalized
+    if not project_root.exists():
+        fail(f"Project path not found: {project_root}")
+
+    if project_type is not None:
+        project_md_path = project_root / PROJECT_FILE
+        if not project_md_path.exists():
+            fail(f"Missing {PROJECT_FILE} in project root {project_root}")
+        project_md_text = load_text(project_md_path)
+        for line in project_md_text.splitlines():
+            if line.startswith("Type:"):
+                actual_type = line.split(":", 1)[1].strip()
+                if actual_type != project_type:
+                    fail(f"Project type mismatch: expected {project_type}, found {actual_type}")
+                break
+
+    git_root = find_git_root(project_root)
+    relative_path = None
+    if git_root is not None:
+        relative_path = project_root.relative_to(git_root)
+
+    shutil.rmtree(project_root)
+    print(f"Removed project '{normalized.name}' at {project_root}")
+
+    print("\nNext steps for cleanup:")
+    if git_root is not None:
+        relative_display = str(relative_path) if relative_path != Path(".") else "."
+        print(f"  1. Change into the Git root: cd {git_root}")
+        print(f"  2. Remove the project from Git: git rm -r {relative_display}")
+        print(f"  3. Commit the removal: git commit -m \"Remove project {normalized.name} ({normalized})\"")
+        print("  4. Push the commit: git push")
+        remote_url = discover_git_remote(git_root)
+        if remote_url:
+            print(f"  5. If the project had a remote repository, clean it up in the hosting service: {remote_url}")
+    else:
+        print("  - No Git repository detected for this project path.")
+        print("  - If this project was tracked by Git, run cleanup from the repository root and remove the path manually.")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="karya")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    init_parser = subparsers.add_parser("init")
+    init_subparsers = init_parser.add_subparsers(dest="entity", required=True)
+    init_subparsers.add_parser("workspace")
+
+    create_parser = subparsers.add_parser("create")
+    create_subparsers = create_parser.add_subparsers(dest="entity", required=True)
+    create_project_parser = create_subparsers.add_parser("project")
+    create_project_parser.add_argument("--type", required=True, choices=sorted(SUPPORTED_TYPES))
+    create_project_parser.add_argument("--mps", required=True)
+
+    publish_parser = subparsers.add_parser("publish")
+    publish_subparsers = publish_parser.add_subparsers(dest="entity", required=True)
+    publish_project_parser = publish_subparsers.add_parser("project")
+    publish_project_parser.add_argument("--mps", help="Project MPS path, e.g. learning/mit/6.828")
+    publish_project_parser.add_argument("--type", choices=sorted(SUPPORTED_TYPES), help="Optional project type for validation")
+    publish_project_parser.add_argument("--owner", help="GitHub account/org/user to derive repo URL from MPS")
+    publish_project_parser.add_argument("--repo-url", help="Explicit repository URL to record in PROJECT.md")
+
+    remove_parser = subparsers.add_parser("remove")
+    remove_subparsers = remove_parser.add_subparsers(dest="entity", required=True)
+    remove_project_parser = remove_subparsers.add_parser("project")
+    remove_project_parser.add_argument("--mps", required=True, help="Project MPS path to remove, e.g. learning/mit/6.828")
+    remove_project_parser.add_argument("--type", choices=sorted(SUPPORTED_TYPES), help="Optional project type for validation")
+
+    args = parser.parse_args()
+
+    if args.command == "init" and args.entity == "workspace":
+        init_workspace()
+    elif args.command == "create" and args.entity == "project":
+        create_project(args.type, args.mps)
+    elif args.command == "publish" and args.entity == "project":
+        publish_project(
+            getattr(args, "mps", None),
+            getattr(args, "type", None),
+            getattr(args, "repo_url", None),
+            getattr(args, "owner", None),
+        )
+    elif args.command == "remove" and args.entity == "project":
+        remove_project(args.mps, getattr(args, "type", None))
+    else:
+        parser.error("Unsupported command")
+
+
+if __name__ == "__main__":
+    main()
