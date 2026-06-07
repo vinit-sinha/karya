@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \\r
+Icon\r\n
+
+# Thumbnails
+._*
+
+# Files that might appear on external disks
+.Spotlight-V100
+.Trashes
+
+# Temporary files
+.fseventsd
+
+# macOS Finder metadata
+.DS_Store?
+
+# macOS files created by the system
+.AppleDB
+.AppleDesktop
+.NetworkTrashFolder
+.VolumeIcon.icns
+
+# macOS metadata stores
+.SavedApplicationState
+
+# Apple double files
+._*
