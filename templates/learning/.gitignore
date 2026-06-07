@@ -1,0 +1,15 @@
+.DS_Store
+.AppleDouble
+._*
+.Spotlight-V100
+.Trashes
+.vscode/
+.idea/
+build/
+out/
+dist/
+*.o
+*.a
+*.so
+*.dylib
+*.log

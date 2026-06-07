@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+echo "Karya bootstrap v1.0"
+echo "Planned CLI grammar:"
+echo "  karya <command> <entity> [options]"
+echo ""
+echo "Examples:"
+echo "  karya init workspace"
+echo "  karya create project --type learning --mps learning/mit/6.828"
+echo "  karya publish project"
