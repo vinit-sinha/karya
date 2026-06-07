@@ -365,6 +365,18 @@ def find_git_root(project_root: Path) -> Path | None:
     return git_root
 
 
+def ask_choice(prompt: str, choices: list[str], default: str) -> str:
+    if not sys.stdin.isatty():
+        return default
+    choices_str = "/".join(c.upper() if c == default else c.lower() for c in choices)
+    while True:
+        answer = input(f"{prompt} [{choices_str}]: ").strip().lower()
+        if not answer:
+            return default
+        if answer in [c.lower() for c in choices]:
+            return answer
+
+
 def ask_confirmation(prompt: str, default: bool = False) -> bool:
     if not sys.stdin.isatty():
         return default
@@ -395,11 +407,14 @@ def git_remote_add_origin(git_root: Path, repo_url: str) -> bool:
     if existing is not None:
         return existing == repo_url
     result = run_git_command(["remote", "add", "origin", repo_url], cwd=git_root)
+    if result.returncode == 0:
+        # Fetch to establish remote tracking branch
+        run_git_command(["fetch", "origin"], cwd=git_root)
     return result.returncode == 0
 
 
 def git_push_current_branch(git_root: Path) -> bool:
-    result = run_git_command(["push", "-u", "origin", "HEAD"], cwd=git_root)
+    result = run_git_command(["push", "-u", "origin", "HEAD", "--force-with-lease"], cwd=git_root)
     return result.returncode == 0
 
 
@@ -432,9 +447,11 @@ def gh_repo_exists(owner: str, repo: str) -> bool | None:
 
 
 def gh_create_repo(owner: str, repo: str, private: bool = False) -> bool:
-    args = ["gh", "repo", "create", f"{owner}/{repo}", "--confirm"]
+    args = ["gh", "repo", "create", f"{owner}/{repo}"]
     if private:
-        args.insert(3, "--private")
+        args.append("--private")
+    else:
+        args.append("--public")
     result = subprocess.run(args, capture_output=True, text=True)
     return result.returncode == 0
 
@@ -453,7 +470,7 @@ def parse_project_mps(project_md_text: str) -> str | None:
 def derive_github_repo_url(mps: str, owner: str | None = None) -> str:
     repo_slug = mps_to_repo_slug(mps)
     if owner:
-        return f"git@github.com:{owner}/{repo_slug}.git"
+        return f"https://github.com/{owner}/{repo_slug}.git"
     return f"https://github.com/your-account/{repo_slug}.git"
 
 
@@ -534,7 +551,8 @@ def publish_project(
                     repo_exists = gh_repo_exists(owner_name, repo_name)
                     if repo_exists is False:
                         if ask_confirmation(f"GitHub repository {owner_name}/{repo_name} does not exist. Create it?"):
-                            if not gh_create_repo(owner_name, repo_name):
+                            visibility = ask_choice("Visibility", ["public", "private"], "private")
+                            if not gh_create_repo(owner_name, repo_name, private=(visibility == "private")):
                                 fail("Failed to create GitHub repository.")
                             print(f"Created GitHub repository {owner_name}/{repo_name}.")
                             if not git_remote_add_origin(git_root, repo_url):
@@ -612,6 +630,11 @@ def publish_project(
     print(f"Published project at {project_root}")
     if repo_url:
         print(f"Repository metadata updated to {repo_url}")
+
+    if git_root is not None:
+        run_git_command(["add", str(project_md_path)], cwd=git_root)
+        run_git_command(["commit", "-m", "Publish project and update metadata"], cwd=git_root)
+        print("Committed metadata update.")
 
 
 def remove_project(mps: str, project_type: str | None = None) -> None:

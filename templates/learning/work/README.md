@@ -1,0 +1,1 @@
+Place Artifacts generated out of your study here.
