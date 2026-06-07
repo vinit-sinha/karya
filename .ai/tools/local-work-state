@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import datetime
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+STATE_DIR = Path('.karya') / 'state-checkpoints'
+
+
+def fail(message: str) -> None:
+    print(f'Error: {message}', file=sys.stderr)
+    sys.exit(1)
+
+
+def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ['git', *args],
+        cwd=str(cwd) if cwd is not None else None,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def find_git_root(start: Path) -> Path | None:
+    current = start.resolve()
+    while True:
+        if (current / '.git').exists() or run_git(['rev-parse', '--is-inside-work-tree'], cwd=current).returncode == 0:
+            return current
+        if current.parent == current:
+            return None
+        current = current.parent
+
+
+def sanitize_name(name: str | None) -> str:
+    if not name:
+        return 'latest'
+    cleaned = ''.join(ch if ch.isalnum() or ch in '-_' else '_' for ch in name.strip())
+    if not cleaned:
+        fail('Checkpoint name must include letters or numbers.')
+    return cleaned
+
+
+def get_checkpoint_path(root: Path, name: str) -> Path:
+    return root / STATE_DIR / f'{name}.json'
+
+
+def get_patch_path(root: Path, name: str) -> Path:
+    return root / STATE_DIR / f'{name}.patch'
+
+
+def ensure_state_dir(root: Path) -> Path:
+    path = root / STATE_DIR
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def git_branch(root: Path) -> str:
+    result = run_git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd=root)
+    return result.stdout.strip() if result.returncode == 0 else 'unknown'
+
+
+def git_commit(root: Path) -> str:
+    result = run_git(['rev-parse', 'HEAD'], cwd=root)
+    return result.stdout.strip() if result.returncode == 0 else ''
+
+
+def git_remote(root: Path) -> str:
+    result = run_git(['remote', 'get-url', 'origin'], cwd=root)
+    return result.stdout.strip() if result.returncode == 0 else ''
+
+
+def git_status(root: Path) -> list[str]:
+    result = run_git(['status', '--porcelain'], cwd=root)
+    if result.returncode != 0:
+        return []
+    return [line for line in result.stdout.splitlines() if line.strip()]
+
+
+def save_state(name: str, description: str | None) -> None:
+    root = find_git_root(Path.cwd())
+    if root is None:
+        fail('No Git repository detected. Run this from inside a repository.')
+
+    ensure_state_dir(root)
+    checkpoint_file = get_checkpoint_path(root, name)
+    patch_file = get_patch_path(root, name)
+
+    status = git_status(root)
+    branch = git_branch(root)
+    commit = git_commit(root)
+    remote = git_remote(root)
+    uncommitted = bool(status)
+
+    if uncommitted:
+        staged = run_git(['diff', '--patch', '--staged'], cwd=root)
+        unstaged = run_git(['diff', '--patch'], cwd=root)
+        patch_file.write_text((staged.stdout or '') + (unstaged.stdout or ''), encoding='utf-8')
+    elif patch_file.exists():
+        patch_file.unlink()
+
+    payload = {
+        'name': name,
+        'description': description or '',
+        'created_at': datetime.datetime.now().isoformat(),
+        'branch': branch,
+        'head_commit': commit,
+        'remote': remote,
+        'uncommitted_changes': uncommitted,
+        'status_lines': status,
+        'patch_file': str(patch_file.relative_to(root)) if uncommitted else None,
+    }
+    checkpoint_file.write_text(json.dumps(payload, indent=2), encoding='utf-8')
+    print(f'Saved work state checkpoint: {checkpoint_file}')
+    if uncommitted:
+        print(f'Captured patch: {patch_file}')
+
+
+def resume_state(name: str, apply_patch: bool) -> None:
+    root = find_git_root(Path.cwd())
+    if root is None:
+        fail('No Git repository detected. Run this from inside a repository.')
+
+    checkpoint_file = get_checkpoint_path(root, name)
+    if not checkpoint_file.exists():
+        fail(f'Checkpoint not found: {checkpoint_file}')
+
+    data = json.loads(checkpoint_file.read_text(encoding='utf-8'))
+    print(f"Checkpoint: {data['name']}")
+    print(f"Description: {data['description']}")
+    print(f"Created at: {data['created_at']}")
+    print(f"Branch: {data['branch']}")
+    print(f"Head commit: {data['head_commit']}")
+    if data['remote']:
+        print(f"Remote: {data['remote']}")
+    print(f"Uncommitted changes: {data['uncommitted_changes']}")
+    if data['status_lines']:
+        print('Git status:')
+        for line in data['status_lines']:
+            print(f'  {line}')
+
+    if data['patch_file']:
+        patch_path = root / data['patch_file']
+        if patch_path.exists():
+            if apply_patch:
+                result = run_git(['apply', '--index', str(patch_path)], cwd=root)
+                if result.returncode != 0:
+                    fail(f'Apply failed: {result.stderr.strip()}')
+                print(f'Applied patch from {patch_path}')
+            else:
+                print(f'Patch available at: {patch_path}')
+        else:
+            print(f'Warning: patch file missing: {patch_path}')
+
+
+def list_states() -> None:
+    root = find_git_root(Path.cwd())
+    if root is None:
+        fail('No Git repository detected. Run this from inside a repository.')
+
+    state_root = root / STATE_DIR
+    if not state_root.exists():
+        print('No checkpoints saved.')
+        return
+
+    files = sorted(state_root.glob('*.json'))
+    for file in files:
+        data = json.loads(file.read_text(encoding='utf-8'))
+        print(f"- {data['name']}: {data['created_at']} ({file.name})")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog='local-work-state')
+    subparsers = parser.add_subparsers(dest='command', required=True)
+
+    save = subparsers.add_parser('save')
+    save.add_argument('--name', help='Checkpoint name, defaults to latest')
+    save.add_argument('--description', help='Optional checkpoint description')
+
+    resume = subparsers.add_parser('resume')
+    resume.add_argument('--name', help='Checkpoint name, defaults to latest')
+    resume.add_argument('--apply', action='store_true', help='Apply saved patch when resuming')
+
+    subparsers.add_parser('list')
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    name = sanitize_name(getattr(args, 'name', None))
+    if args.command == 'save':
+        save_state(name, getattr(args, 'description', None))
+    elif args.command == 'resume':
+        resume_state(name, getattr(args, 'apply', False))
+    elif args.command == 'list':
+        list_states()
+    else:
+        fail('Unknown command')
+
+
+if __name__ == '__main__':
+    main()
