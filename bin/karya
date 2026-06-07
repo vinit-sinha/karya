@@ -131,7 +131,16 @@ def save_workstate(checkpoint_name: str | None = None, description: str | None =
     if uncommitted_changes:
         staged = run_git_command(["diff", "--patch", "--staged"], cwd=git_root)
         unstaged = run_git_command(["diff", "--patch"], cwd=git_root)
-        patch_path.write_text((staged.stdout or "") + (unstaged.stdout or ""), encoding="utf-8")
+        
+        untracked = run_git_command(["ls-files", "--others", "--exclude-standard"], cwd=git_root)
+        untracked_diffs = []
+        if untracked.stdout:
+            for filepath in untracked.stdout.splitlines():
+                if not filepath.strip(): continue
+                diff_cmd = run_git_command(["diff", "--no-index", "--patch", "/dev/null", filepath], cwd=git_root)
+                untracked_diffs.append(diff_cmd.stdout or "")
+                
+        patch_path.write_text((staged.stdout or "") + (unstaged.stdout or "") + "".join(untracked_diffs), encoding="utf-8")
     elif patch_path.exists():
         patch_path.unlink()
 
@@ -302,13 +311,18 @@ def create_project(project_type: str, mps: str) -> None:
     if init_result.returncode != 0:
         fail(f"Failed to initialize git repository: {init_result.stderr}")
         
+    name_check = run_git_command(["config", "user.name"], cwd=project_root)
+    if name_check.returncode != 0:
+        run_git_command(["config", "local", "user.name", "Karya User"], cwd=project_root)
+        run_git_command(["config", "local", "user.email", "karya@localhost"], cwd=project_root)
+
     add_result = run_git_command(["add", "."], cwd=project_root)
     if add_result.returncode != 0:
         fail(f"Failed to stage files: {add_result.stderr}")
         
     commit_result = run_git_command(["commit", "-m", f"Initial project skeleton for {project_name}"], cwd=project_root)
     if commit_result.returncode != 0:
-        fail(f"Failed to create initial commit: {commit_result.stderr}")
+        print(f"Warning: Failed to create initial commit: {commit_result.stderr.strip()}")
         
     print(f"Initialized git repository and created initial commit for '{project_name}'")
 
@@ -556,7 +570,9 @@ def publish_project(
             elif remote_empty is False:
                 print(f"Remote repository has existing history: {remote_repo_url}")
             else:
-                print(f"Unable to determine remote repository state for {remote_repo_url}. Continuing with metadata update.")
+                print(f"Unable to determine remote repository state for {remote_repo_url}.")
+                if not ask_confirmation("Continue with metadata update anyway?", default=True):
+                    fail("Publish aborted by user.")
 
     lines = project_md_text.splitlines()
     new_lines = []
