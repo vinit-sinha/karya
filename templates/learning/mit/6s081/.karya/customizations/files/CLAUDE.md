@@ -44,6 +44,18 @@ karya create project --uri kosh://learning/mit/6s081 --continue
 ```
 Or: `Cmd+Shift+P → Tasks: Run Task → Setup: re-run post-create`
 
+### Windows users
+QEMU and the RISC-V toolchain don't run natively on Windows. **WSL2 is required** — MIT recommends it for the course.
+
+```powershell
+# In PowerShell (admin):
+wsl --install
+```
+
+Run karya and all lab work from inside the Ubuntu WSL terminal. VS Code's WSL extension (`ms-vscode-remote.remote-wsl`) lets you open the project in VS Code while the filesystem and terminal stay in WSL.
+
+MIT's Windows setup guide: https://pdos.csail.mit.edu/6.828/2021/tools.html
+
 ---
 
 ## For AI — context and rules

@@ -32,6 +32,21 @@ See `SETUP.md` for full setup status and all available tasks.
 
 ---
 
+## Windows users
+
+6.S081 requires QEMU and the RISC-V toolchain, which don't run natively on Windows. Use **WSL2** — MIT recommends this for the course.
+
+```powershell
+# In PowerShell (admin):
+wsl --install
+```
+
+Then open an Ubuntu terminal and run karya from there. Everything works as-is under WSL2.
+
+> MIT's Windows setup guide: https://pdos.csail.mit.edu/6.828/2021/tools.html
+
+---
+
 ## If setup seems broken
 
 ```bash
