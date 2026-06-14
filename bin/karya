@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -259,9 +260,17 @@ def run_hook(customizations_dir: Path, event: str, cwd: Path) -> bool:
     script = customizations_dir / f"{event}.sh"
     if not script.exists():
         return True
+    bash = shutil.which("bash")
+    if bash is None:
+        print(
+            f"  Warning: bash not found — cannot run {script.name}.\n"
+            f"  On Windows, install Git for Windows (https://git-scm.com) which bundles bash,\n"
+            f"  or use WSL. Then re-run: karya create project --uri <uri> --continue"
+        )
+        return False
     rel = customizations_dir.relative_to(TEMPLATES_ROOT)
     print(f"  [{event}] {rel}")
-    result = subprocess.run(["bash", str(script)], cwd=str(cwd), check=False)
+    result = subprocess.run([bash, str(script)], cwd=str(cwd), check=False)
     if result.returncode != 0:
         if event == "pre-create":
             fail(f"{script.name} exited with code {result.returncode}; aborting.")
@@ -634,7 +643,7 @@ def save_workstate(checkpoint_name: str | None = None, description: str | None =
             for filepath in untracked.stdout.splitlines():
                 if not filepath.strip():
                     continue
-                diff_cmd = run_git_command(["diff", "--no-index", "--patch", "/dev/null", filepath], cwd=git_root)
+                diff_cmd = run_git_command(["diff", "--no-index", "--patch", os.devnull, filepath], cwd=git_root)
                 untracked_diffs.append(diff_cmd.stdout or "")
         patch_path.write_text(
             (staged.stdout or "") + (unstaged.stdout or "") + "".join(untracked_diffs),
