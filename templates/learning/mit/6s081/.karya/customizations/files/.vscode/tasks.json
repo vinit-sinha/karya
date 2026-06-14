@@ -2,7 +2,28 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Lab: start",
+      "detail": "Checkout lab branch in xv6, create work/<lab>/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh ${input:labName}",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared", "clear": false }
+    },
+    {
+      "label": "Lab: done",
+      "detail": "make grade, create work/<lab>/writeup.md, push to personal remote, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh ${input:labName}",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared", "clear": false }
+    },
+    {
       "label": "xv6: boot (make qemu)",
+      "detail": "Boot xv6 in QEMU — Ctrl-a x to exit",
       "type": "shell",
       "command": "make qemu",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
@@ -12,6 +33,7 @@
     },
     {
       "label": "xv6: run tests (make grade)",
+      "detail": "Run all tests for the current lab branch",
       "type": "shell",
       "command": "make grade",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
@@ -20,7 +42,8 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
-      "label": "xv6: debug session (make qemu-gdb)",
+      "label": "xv6: debug (make qemu-gdb)",
+      "detail": "Start QEMU in debug mode — attach GDB in another terminal with: riscv64-unknown-elf-gdb",
       "type": "shell",
       "command": "make qemu-gdb",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
@@ -30,6 +53,7 @@
     },
     {
       "label": "xv6: clean",
+      "detail": "Run make clean in xv6",
       "type": "shell",
       "command": "make clean",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
@@ -38,16 +62,8 @@
       "presentation": { "reveal": "always", "panel": "shared" }
     },
     {
-      "label": "Lab: switch branch",
-      "type": "shell",
-      "command": "git checkout ${input:labBranch}",
-      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
-      "problemMatcher": [],
-      "group": "none",
-      "presentation": { "reveal": "always", "panel": "shared" }
-    },
-    {
       "label": "Checkpoint: save",
+      "detail": "Save current git state as a karya workstate checkpoint",
       "type": "shell",
       "command": "karya workstate save",
       "options": { "cwd": "${workspaceFolder}" },
@@ -57,6 +73,7 @@
     },
     {
       "label": "Checkpoint: list",
+      "detail": "List all saved karya workstate checkpoints",
       "type": "shell",
       "command": "karya workstate list",
       "options": { "cwd": "${workspaceFolder}" },
@@ -66,9 +83,20 @@
     },
     {
       "label": "Checkpoint: resume",
+      "detail": "Restore the latest karya workstate checkpoint",
       "type": "shell",
       "command": "karya workstate resume --apply",
       "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Setup: re-run post-create",
+      "detail": "Re-run setup hooks (idempotent — safe to run any time, picks up where it left off)",
+      "type": "shell",
+      "command": "karya create project --uri kosh://learning/mit/6s081 --continue",
+      "options": { "cwd": "${workspaceFolder}/../../.." },
       "problemMatcher": [],
       "group": "none",
       "presentation": { "reveal": "always", "panel": "shared" }
@@ -76,10 +104,21 @@
   ],
   "inputs": [
     {
-      "id": "labBranch",
+      "id": "labName",
       "type": "pickString",
-      "description": "Which lab branch?",
-      "options": ["util", "syscall", "pagetable", "traps", "cow", "thread", "net", "lock", "fs", "mmap"],
+      "description": "Which lab?",
+      "options": [
+        "util",
+        "syscall",
+        "pagetable",
+        "traps",
+        "cow",
+        "thread",
+        "net",
+        "lock",
+        "fs",
+        "mmap"
+      ],
       "default": "util"
     }
   ]
