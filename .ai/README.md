@@ -62,6 +62,24 @@ karya workstate resume [NAME] [--apply]
 karya workstate list
 ```
 
+### CWD semantics — critical
+
+**`karya init workspace`** — uses `Path.cwd()` as the workspace root. Takes **no arguments**. The directory must already exist; karya does NOT create it.
+
+```bash
+mkdir ~/workspace/mit          # must exist before init
+cd ~/workspace/mit
+karya init workspace           # writes .karya-workspace here
+```
+
+**All other commands** — find the workspace by walking UP from `Path.cwd()` via `find_workspace_root()`. You can run them from anywhere inside the workspace tree (not just the root). `karya create project` also creates all intermediate project path directories automatically (`project_root.parent.mkdir(parents=True)`), so after `init workspace` you only need to be somewhere inside the workspace tree.
+
+```bash
+# Both of these work after init workspace:
+cd ~/workspace/mit && karya create project --uri kosh://learning/mit/6s081
+cd ~/workspace/mit/learning   && karya create project --uri kosh://learning/mit/6s081
+```
+
 ## Template & Hook System
 
 `templates/` is a knowledge tree. Each node can optionally have a `.karya/customizations/` directory containing hook scripts.
