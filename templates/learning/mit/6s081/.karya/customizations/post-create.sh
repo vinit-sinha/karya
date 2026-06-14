@@ -48,6 +48,7 @@ fi
 if ! command -v riscv64-unknown-elf-gcc &>/dev/null; then
     echo "[6s081] Installing RISC-V toolchain (this may take several minutes)..."
     brew tap riscv-software-src/riscv 2>/dev/null || true
+    brew trust riscv-software-src/riscv 2>/dev/null || true
     brew install riscv-gnu-toolchain
 else
     echo "[6s081] RISC-V toolchain already installed."
@@ -68,33 +69,44 @@ echo ""
 echo "[6s081] ── Step 2/5: Clone xv6-labs-2021 ───────────────────────────────"
 # Directory layout:
 #   starter-code/xv6-labs-2021/   ← MIT clone (one branch per lab)
-#     origin  → git://g.csail.mit.edu/xv6-labs-2021  (MIT source, read-only)
-#     personal → https://github.com/<user>/<repo>     (your private mirror)
+#     origin   → git://g.csail.mit.edu/xv6-labs-2021  (MIT, read-only)
+#     personal → https://github.com/<user>/<repo>      (your private mirror, HTTPS)
 #
-# You work directly on lab branches (MIT convention).
-# Push your work to the personal remote.
+# You work directly on lab branches — MIT convention.
+# All git operations against the personal remote use gh's HTTPS token; no SSH needed.
+
+# Accept xv6-riscv as a legacy directory name and normalise to xv6-labs-2021
 STARTER="$PROJECT_ROOT/starter-code/xv6-labs-2021"
+STARTER_LEGACY="$PROJECT_ROOT/starter-code/xv6-riscv"
+if [[ ! -d "$STARTER/.git" && -d "$STARTER_LEGACY/.git" ]]; then
+    echo "[6s081] Renaming starter-code/xv6-riscv → starter-code/xv6-labs-2021 ..."
+    mv "$STARTER_LEGACY" "$STARTER"
+fi
+
 if [[ ! -d "$STARTER/.git" ]]; then
     echo "[6s081] Cloning xv6-labs-2021 from MIT..."
     git clone git://g.csail.mit.edu/xv6-labs-2021 "$STARTER" || {
         echo "[6s081] ERROR: clone failed. Ensure network access to g.csail.mit.edu"
-        echo "        Re-run after fixing: karya create project --uri kosh://learning/mit/6s081 --continue"
+        echo "        Re-run: karya create project --uri kosh://learning/mit/6s081 --continue"
         exit 1
     }
 else
-    echo "[6s081] xv6-labs-2021 already cloned at $STARTER"
+    echo "[6s081] xv6-labs-2021 present at $STARTER"
 fi
 
-# MIT's remote HEAD is unset — check out util explicitly so there's a ref
+# MIT's remote HEAD is unset — ensure util is checked out as a local branch
+# so that git push --all has at least one ref to push.
 cd "$STARTER"
-if ! git rev-parse --verify util &>/dev/null; then
-    echo "[6s081] ERROR: 'util' branch not found in xv6 clone — clone may be corrupt."
+if ! git show-ref --verify --quiet refs/remotes/origin/util && \
+   ! git show-ref --verify --quiet refs/heads/util; then
+    echo "[6s081] ERROR: 'util' branch not found — clone may be incomplete."
     exit 1
 fi
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-if [[ "$CURRENT_BRANCH" == "HEAD" || -z "$CURRENT_BRANCH" ]]; then
-    git checkout util
-    echo "[6s081] Checked out branch: util (lab 0 — starting point)"
+# git branch --show-current returns empty string in detached HEAD state
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [[ -z "$CURRENT_BRANCH" ]]; then
+    git checkout util      # creates local tracking branch from origin/util
+    echo "[6s081] Checked out branch: util (lab 0 — start here)"
 else
     echo "[6s081] Current branch: $CURRENT_BRANCH"
 fi
@@ -110,55 +122,49 @@ if ! command -v gh &>/dev/null; then
 else
     GITHUB_USER=$(gh api user --jq '.login' 2>/dev/null || echo "")
     if [[ -z "$GITHUB_USER" ]]; then
-        echo "[6s081] WARNING: not authenticated with gh — skipping GitHub mirror."
+        echo "[6s081] WARNING: not authenticated with gh."
         echo "        Run: gh auth login, then re-run with --continue"
     else
-        FULL_REPO="$GITHUB_USER/$REPO_NAME"
+        # Wire gh as the HTTPS credential helper so no SSH keys are needed
+        gh auth setup-git 2>/dev/null || true
 
-        if gh repo view "$FULL_REPO" &>/dev/null 2>&1; then
-            echo "[6s081] Repo already exists: https://github.com/$FULL_REPO"
-            REPO_META=$(gh repo view "$FULL_REPO" --json visibility,description \
-                --jq '"  Visibility: \(.visibility) | Description: \(.description)"')
-            echo "  $REPO_META"
-            echo ""
-            echo "  What would you like to do?"
-            echo "    [R] Reuse this repo as-is (recommended if it contains your lab work)"
-            echo "    [N] Create under a different name"
-            read -r -p "  Choice [R/N, default R]: " choice
-            choice="${choice:-R}"
-            if [[ "${choice^^}" == "N" ]]; then
-                read -r -p "  New repo name: " REPO_NAME
-                FULL_REPO="$GITHUB_USER/$REPO_NAME"
-                echo "[6s081] Creating private repo: https://github.com/$FULL_REPO ..."
+        # Check if a personal remote already exists in the clone
+        # It may be SSH (git@github.com:user/repo.git) — normalise to HTTPS
+        cd "$STARTER"
+        EXISTING_REMOTE=$(git remote get-url personal 2>/dev/null || echo "")
+        if [[ -n "$EXISTING_REMOTE" ]]; then
+            # Convert SSH → HTTPS: git@github.com:user/repo.git → https://github.com/user/repo.git
+            HTTPS_REMOTE=$(echo "$EXISTING_REMOTE" \
+                | sed 's|^git@github\.com:\(.*\)$|https://github.com/\1|')
+            # Extract repo name from URL (strip .git suffix)
+            INFERRED_REPO=$(basename "$HTTPS_REMOTE" .git)
+            FULL_REPO="$GITHUB_USER/$INFERRED_REPO"
+            echo "[6s081] Found existing personal remote: $EXISTING_REMOTE"
+            if [[ "$EXISTING_REMOTE" != "$HTTPS_REMOTE" ]]; then
+                git remote set-url personal "$HTTPS_REMOTE"
+                echo "[6s081] Converted SSH → HTTPS: $HTTPS_REMOTE"
+            fi
+            PERSONAL_REMOTE_URL="$HTTPS_REMOTE"
+        else
+            cd "$PROJECT_ROOT"
+            FULL_REPO="$GITHUB_USER/$REPO_NAME"
+            # Create repo if it doesn't exist
+            if gh repo view "$FULL_REPO" &>/dev/null 2>&1; then
+                echo "[6s081] GitHub repo already exists: https://github.com/$FULL_REPO"
+            else
+                echo "[6s081] Creating private GitHub repo: https://github.com/$FULL_REPO ..."
                 gh repo create "$FULL_REPO" --private \
                     --description "MIT 6.S081 OS Engineering — personal lab repo"
-            else
-                echo "[6s081] Reusing https://github.com/$FULL_REPO"
             fi
-        else
-            echo "[6s081] Creating private GitHub repo: https://github.com/$FULL_REPO ..."
-            gh repo create "$FULL_REPO" --private \
-                --description "MIT 6.S081 OS Engineering — personal lab repo"
-        fi
-
-        PERSONAL_REMOTE_URL="https://github.com/$FULL_REPO.git"
-        cd "$STARTER"
-        if git remote get-url personal &>/dev/null 2>&1; then
-            EXISTING=$(git remote get-url personal)
-            if [[ "$EXISTING" != "$PERSONAL_REMOTE_URL" ]]; then
-                git remote set-url personal "$PERSONAL_REMOTE_URL"
-                echo "[6s081] Updated remote 'personal' → $PERSONAL_REMOTE_URL"
-            else
-                echo "[6s081] Remote 'personal' already set correctly."
-            fi
-        else
+            PERSONAL_REMOTE_URL="https://github.com/$FULL_REPO.git"
+            cd "$STARTER"
             git remote add personal "$PERSONAL_REMOTE_URL"
             echo "[6s081] Added remote 'personal' → $PERSONAL_REMOTE_URL"
         fi
 
         echo "[6s081] Pushing all lab branches to personal remote..."
-        git push personal --all 2>&1 || \
-            echo "[6s081] WARNING: push incomplete — run 'git push personal --all' from starter-code/xv6-labs-2021/ when ready."
+        git push personal --all 2>&1 \
+            || echo "[6s081] WARNING: push incomplete — re-run with --continue when network is available."
         cd "$PROJECT_ROOT"
     fi
 fi
