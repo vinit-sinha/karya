@@ -2,9 +2,8 @@
 
 Name:
 
-Type:
+URI:
 
-MPS:
 
 Created:
 
