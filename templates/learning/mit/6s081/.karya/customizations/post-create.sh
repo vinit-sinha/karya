@@ -191,6 +191,18 @@ if [[ -f "$FILES_DIR/.vscode/tasks.json" ]]; then
     cp "$FILES_DIR/.vscode/tasks.json" "$PROJECT_ROOT/.vscode/tasks.json"
     echo "[6s081] Installed .vscode/tasks.json"
 fi
+if [[ -f "$FILES_DIR/.vscode/settings.json" ]]; then
+    cp "$FILES_DIR/.vscode/settings.json" "$PROJECT_ROOT/.vscode/settings.json"
+    echo "[6s081] Installed .vscode/settings.json (opens README.md on launch)"
+fi
+
+# Install project README and CLAUDE.md (human + AI instructions)
+for f in README.md CLAUDE.md; do
+    if [[ -f "$FILES_DIR/$f" ]]; then
+        cp "$FILES_DIR/$f" "$PROJECT_ROOT/$f"
+        echo "[6s081] Installed $f"
+    fi
+done
 
 for script in lab-start.sh lab-done.sh; do
     if [[ -f "$FILES_DIR/scripts/$script" ]]; then
