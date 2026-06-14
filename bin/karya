@@ -248,16 +248,17 @@ def discover_hooks(uri_parts: list[str]) -> list[Path]:
     return hooks
 
 
-def run_hook(customizations_dir: Path, event: str, cwd: Path) -> None:
+def run_hook(customizations_dir: Path, event: str, cwd: Path) -> bool:
     """
     Run <event>.sh from customizations_dir with cwd as the working directory.
     Scripts receive no arguments and no environment variables — they use
     $(dirname "$0") to locate themselves and walk up via marker files for context.
-    Pre-create failure aborts; post-create failure warns only.
+    Pre-create failure aborts. Post-create failure warns and returns False.
+    Returns True on success (or when no script exists).
     """
     script = customizations_dir / f"{event}.sh"
     if not script.exists():
-        return
+        return True
     rel = customizations_dir.relative_to(TEMPLATES_ROOT)
     print(f"  [{event}] {rel}")
     result = subprocess.run(["bash", str(script)], cwd=str(cwd), check=False)
@@ -266,6 +267,8 @@ def run_hook(customizations_dir: Path, event: str, cwd: Path) -> None:
             fail(f"{script.name} exited with code {result.returncode}; aborting.")
         else:
             print(f"  Warning: {script.name} exited with code {result.returncode}")
+            return False
+    return True
 
 # ── project metadata ──────────────────────────────────────────────────────────
 
@@ -341,10 +344,14 @@ def create_project(uri: str, mode: str = "new") -> None:
             set_project_setup_status(project_root, uri, "in_progress")
             if hooks:
                 print("Post-create hooks:")
-            for hook_dir in hooks:
-                run_hook(hook_dir, "post-create", project_root)
-            set_project_setup_status(project_root, uri, "complete")
-            print(f"Setup of '{project_name}' complete.")
+            hooks_ok = all(run_hook(h, "post-create", project_root) for h in hooks)
+            if hooks_ok:
+                set_project_setup_status(project_root, uri, "complete")
+                print(f"Setup of '{project_name}' complete.")
+            else:
+                print(f"Setup of '{project_name}' incomplete — one or more hooks failed.")
+                print(f"  Fix the issue above, then re-run:")
+                print(f"    karya create project --uri {uri} --continue")
             return
 
     # ── Fresh create ─────────────────────────────────────────────────────────
@@ -418,11 +425,14 @@ def create_project(uri: str, mode: str = "new") -> None:
     # Post-create hooks — project now exists, run from project root
     if hooks:
         print("Post-create hooks:")
-    for hook_dir in hooks:
-        run_hook(hook_dir, "post-create", project_root)
-
-    set_project_setup_status(project_root, uri, "complete")
-    print(f"Setup of '{project_name}' complete.")
+    hooks_ok = all(run_hook(h, "post-create", project_root) for h in hooks)
+    if hooks_ok:
+        set_project_setup_status(project_root, uri, "complete")
+        print(f"Setup of '{project_name}' complete.")
+    else:
+        print(f"Setup of '{project_name}' incomplete — one or more hooks failed.")
+        print(f"  Fix the issue above, then re-run:")
+        print(f"    karya create project --uri {uri} --continue")
 
 
 def remove_project(uri: str) -> None:
