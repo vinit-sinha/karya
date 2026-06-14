@@ -43,7 +43,7 @@ git://g.csail.mit.edu/6.5840-golabs-2026
 ```
 Single `master` branch. Labs are subdirectories (MapReduce, Raft, KV, Sharded KV).
 
-> Note: `gh` CLI is NOT installed on this machine. All git operations use plain `git` commands.
+> `gh` CLI is installed and authenticated (HTTPS protocol). Use it for repo creation and GitHub operations.
 
 ---
 
@@ -81,12 +81,9 @@ Single `master` branch. Labs are subdirectories (MapReduce, Raft, KV, Sharded KV
 cd ~/workspace/mit/learning/mit/<course>/starter-code
 git clone git://g.csail.mit.edu/<repo-name> <folder-name>
 
-# 2. Add your own GitHub remote
+# 2. Create personal GitHub repo and push
 cd <folder-name>
-git remote add personal git@github.com:<yourname>/<repo-name>.git
-
-# 3. Push to your GitHub (creates your personal copy)
-git push personal --all
+gh repo create <repo-name> --private --source=. --remote=personal --push
 
 # 4. Per lab — work branch off MIT's lab branch (never modify MIT branches)
 git checkout -b lab/util-work origin/util
@@ -109,42 +106,37 @@ Env vars passed to scripts: `KARYA_WORKSPACE_ROOT`, `KARYA_PROJECT_ROOT`, `KARYA
 
 ---
 
-## SSH Setup Status
+## GitHub Auth Status
 
-- `github.com` added to `~/.ssh/known_hosts` ✓
-- SSH key exists at `~/.ssh/id_ed25519.pub`
-- **PENDING**: Add the public key to GitHub account (Settings → SSH and GPG keys)
+- `gh` CLI installed and authenticated via HTTPS ✓ (`gh auth status` confirmed)
+- No SSH key needed — `gh` handles all GitHub operations
 
 ---
 
 ## What Has NOT Been Done Yet
 
-- [ ] SSH key not yet added to GitHub (run `cat ~/.ssh/id_ed25519.pub`, copy to GitHub)
 - [ ] No git clones of MIT starter repos yet
-- [ ] No personal GitHub repos created yet (needs SSH key first)
+- [ ] No personal GitHub repos created yet
 
 ---
 
 ## Where to Start Next Session
 
-1. **Confirm SSH key is on GitHub**: `ssh -T git@github.com` should say "Hi <username>!"
-2. **Clone 6.S081 starter code**:
+1. **Clone 6.S081 starter code**:
    ```bash
    cd ~/workspace/mit/learning/mit/6s081/starter-code
    git clone git://g.csail.mit.edu/xv6-labs-2021 xv6-riscv
    cd xv6-riscv
-   git remote add personal git@github.com:<yourname>/xv6-labs-2021.git
-   git push personal --all
+   gh repo create xv6-labs-2021 --private --source=. --remote=personal --push
    ```
-3. **Clone 6.824 starter code**:
+2. **Clone 6.824 starter code**:
    ```bash
    cd ~/workspace/mit/learning/mit/6824/starter-code
    git clone git://g.csail.mit.edu/6.5840-golabs-2026 6824-labs
    cd 6824-labs
-   git remote add personal git@github.com:<yourname>/6.5840-golabs-2026.git
-   git push personal --all
+   gh repo create 6.5840-golabs-2026 --private --source=. --remote=personal --push
    ```
-4. **Start Lab 1 (Utilities) for 6.S081**:
+3. **Start Lab 1 (Utilities) for 6.S081**:
    ```bash
    cd ~/workspace/mit/learning/mit/6s081/starter-code/xv6-riscv
    git checkout -b lab/util-work origin/util
@@ -154,7 +146,6 @@ Env vars passed to scripts: `KARYA_WORKSPACE_ROOT`, `KARYA_PROJECT_ROOT`, `KARYA
 
 ## Key Files
 
-- `/Users/vinitsinha/workspace/karya/bin/karya` — main CLI (customizations system added)
-- `/Users/vinitsinha/workspace/mit/customizations/` — workspace-local customizations
-- `/Users/vinitsinha/workspace/mit/learning/mit/6s081/LABS.md` — 6.S081 lab tracker
-- `/Users/vinitsinha/workspace/mit/learning/mit/6824/LABS.md` — 6.824 lab tracker
+- `/Users/vinit/workspace/tools/karya/bin/karya` — main CLI (customizations system added)
+- `~/workspace/mit/learning/mit/6s081/LABS.md` — 6.S081 lab tracker
+- `~/workspace/mit/learning/mit/6824/LABS.md` — 6.824 lab tracker
