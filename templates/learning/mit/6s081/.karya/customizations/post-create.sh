@@ -251,7 +251,7 @@ else
                 echo "[6s081] No GitHub mirror found for this project."
                 echo "        Default: https://github.com/$DEFAULT_REPO (will be created as private)"
                 echo -n "        Enter existing mirror URL, or press Enter to create the default: "
-                if [[ -c /dev/tty ]]; then
+                if [[ -t 0 ]]; then
                     read -r USER_INPUT </dev/tty
                 else
                     USER_INPUT=""
