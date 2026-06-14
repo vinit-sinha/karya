@@ -274,6 +274,72 @@ def subst_project_metadata(content: str, project_name: str, project_type: str, m
     return "\n".join(lines).rstrip() + "\n"
 
 
+CUSTOMIZATIONS_DIR = "customizations"
+
+
+def discover_customizations(workspace_root: Path, mps: Path) -> list[Path]:
+    """Return customization dirs that apply to this MPS, from most-general to most-specific."""
+    base = workspace_root / CUSTOMIZATIONS_DIR
+    if not base.exists():
+        return []
+    dirs = []
+    accumulated = base
+    for part in mps.parts:
+        accumulated = accumulated / part
+        if accumulated.is_dir():
+            dirs.append(accumulated)
+    return dirs
+
+
+def run_custom_scripts(
+    custom_dirs: list[Path],
+    event: str,
+    workspace_root: Path,
+    project_root: Path,
+    mps: Path,
+    project_type: str,
+    project_name: str,
+) -> None:
+    env = {
+        **__import__("os").environ,
+        "KARYA_WORKSPACE_ROOT": str(workspace_root),
+        "KARYA_PROJECT_ROOT": str(project_root),
+        "KARYA_MPS": str(mps),
+        "KARYA_TYPE": project_type,
+        "KARYA_PROJECT_NAME": project_name,
+    }
+    for d in custom_dirs:
+        script = d / f"{event}.sh"
+        if not script.exists():
+            continue
+        print(f"Running {script.name} from {d.relative_to(workspace_root)}")
+        result = subprocess.run(
+            ["bash", str(script)],
+            env=env,
+            cwd=str(project_root),
+            check=False,
+        )
+        if result.returncode != 0:
+            if event.startswith("pre-"):
+                fail(f"Pre-script {script} exited with code {result.returncode}; aborting.")
+            else:
+                print(f"Warning: post-script {script} exited with code {result.returncode}")
+
+
+def copy_custom_files(custom_dirs: list[Path], project_root: Path) -> None:
+    for d in custom_dirs:
+        files_dir = d / "files"
+        if not files_dir.is_dir():
+            continue
+        for src in files_dir.rglob("*"):
+            if not src.is_file():
+                continue
+            dest = project_root / src.relative_to(files_dir)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+            print(f"Overlaid {src.name} -> {dest.relative_to(project_root)}")
+
+
 def create_project(project_type: str, mps: str) -> None:
     if project_type not in SUPPORTED_TYPES:
         fail(f"Unsupported project type: {project_type}")
@@ -287,6 +353,10 @@ def create_project(project_type: str, mps: str) -> None:
     project_root = workspace_root / normalized
     if project_root.exists():
         fail(f"Project path already exists: {project_root}")
+
+    custom_dirs = discover_customizations(workspace_root, normalized)
+
+    run_custom_scripts(custom_dirs, "pre-create", workspace_root, project_root, normalized, project_type, normalized.name)
 
     project_root.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(template_source, project_root)
@@ -305,12 +375,14 @@ def create_project(project_type: str, mps: str) -> None:
         readme_text = load_text(readme_path)
         write_text(readme_path, readme_text.replace("PROJECT_NAME", project_name))
 
+    copy_custom_files(custom_dirs, project_root)
+
     print(f"Created project '{project_name}' at {project_root}")
-    
+
     init_result = run_git_command(["init"], cwd=project_root)
     if init_result.returncode != 0:
         fail(f"Failed to initialize git repository: {init_result.stderr}")
-        
+
     name_check = run_git_command(["config", "user.name"], cwd=project_root)
     if name_check.returncode != 0:
         run_git_command(["config", "local", "user.name", "Karya User"], cwd=project_root)
@@ -319,12 +391,14 @@ def create_project(project_type: str, mps: str) -> None:
     add_result = run_git_command(["add", "."], cwd=project_root)
     if add_result.returncode != 0:
         fail(f"Failed to stage files: {add_result.stderr}")
-        
+
     commit_result = run_git_command(["commit", "-m", f"Initial project skeleton for {project_name}"], cwd=project_root)
     if commit_result.returncode != 0:
         print(f"Warning: Failed to create initial commit: {commit_result.stderr.strip()}")
-        
+
     print(f"Initialized git repository and created initial commit for '{project_name}'")
+
+    run_custom_scripts(custom_dirs, "post-create", workspace_root, project_root, normalized, project_type, project_name)
 
 
 def run_git_command(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
