@@ -13,7 +13,18 @@ It does three things:
 
 ## Installation
 
-**Prerequisites:** Python 3.9+, Git, `gh` CLI (optional)
+### Prerequisites
+
+| Prerequisite | Required for |
+|---|---|
+| Python 3.9+ | karya CLI |
+| Git | all commands |
+| `gh` CLI | GitHub integration (repo creation, auth) |
+| `bash` | running hook scripts (pre/post-create) |
+
+On **macOS and Linux**, bash is pre-installed. On **Windows**, use WSL2 — see [Windows users](#windows-users) below.
+
+### Install
 
 ```bash
 git clone https://github.com/vinit-sinha/karya.git
@@ -26,6 +37,23 @@ Verify:
 ```bash
 karya --help
 ```
+
+---
+
+## Windows users
+
+The karya CLI itself (`bin/karya`) runs natively on Windows. However, **project templates that use hook scripts** (like `kosh://learning/mit/6s081`) require `bash`, `brew`, QEMU, and other Unix tools that are not available on native Windows.
+
+**Use WSL2.** Microsoft ships it built into Windows 10/11:
+
+```powershell
+# In PowerShell (as administrator):
+wsl --install
+```
+
+Then open an Ubuntu terminal and run karya from there. All commands and templates work as-is under WSL2.
+
+If you run `karya create project` from Git Bash or MSYS2, the hook will detect this and print step-by-step WSL2 setup instructions.
 
 ---
 
@@ -111,28 +139,79 @@ Karya:
 3. Copies the template into `learning/mit/6s081/`
 4. Places marker files at each level (`.karya-domain`, `.karya-collection`, `.karya-project`)
 5. Initialises a git repository
-6. Runs `post-create.sh` scripts
+6. Runs `post-create.sh` scripts — these can install tools, clone repos, create GitHub mirrors, and write VS Code tasks
 
-The result:
+### Built-in knowledge: 6s081
+
+When you create `kosh://learning/mit/6s081`, karya's built-in hook already knows what to do:
+
+**What the hook sets up automatically:**
+- Installs the RISC-V toolchain and QEMU via Homebrew
+- Clones MIT's xv6 lab repo (`git://g.csail.mit.edu/xv6-labs-2021`)
+- Creates a private GitHub mirror and wires it as the `personal` remote
+- Installs VS Code tasks for booting xv6, running tests, and managing labs
+- Installs `scripts/lab-start.sh` and `scripts/lab-done.sh` for the per-lab workflow
+- Writes `SETUP.md` with the full setup status table and next steps
+- Writes `CLAUDE.md` with instructions for both humans and AI assistants
+
+**The resulting project layout:**
 ```
 learning/mit/6s081/
-├── .karya-project
-├── PROJECT.md
-├── README.md
-├── LABS.md              ← overlaid by karya's built-in 6s081 knowledge
-├── starter-code/        ← for cloning MIT's upstream repo
-├── study_materials/
+├── .karya-project          ← karya marker (setup_status, github_mirror)
+├── CLAUDE.md               ← human + AI instructions; auto-read by Claude Code
+├── README.md               ← getting started (shown by VS Code on first open)
+├── SETUP.md                ← setup status and all VS Code task descriptions
+├── LABS.md                 ← lab tracker — update as you complete each lab
+├── PROJECT.md              ← karya project metadata
+├── scripts/
+│   ├── lab-start.sh        ← checkout lab branch, create notes.md, save checkpoint
+│   └── lab-done.sh         ← make grade, create writeup.md, push, save checkpoint
+├── .vscode/
+│   ├── tasks.json          ← all VS Code tasks (boot, test, lab start/done, etc.)
+│   └── settings.json       ← opens README.md on first VS Code launch
+├── starter-code/
+│   └── xv6-labs-2021/      ← MIT xv6 kernel (one branch per lab)
+├── study_materials/        ← lecture slides, PDFs, reference docs
 └── work/
+    └── <lab>/
+        ├── notes.md        ← created by "Lab: start"
+        └── writeup.md      ← created by "Lab: done"
 ```
 
-### Built-in knowledge
+### Interrupted setup: --continue and --restart
 
-Karya ships with built-in knowledge for well-known projects. When you create `kosh://learning/mit/6s081`, karya already knows:
-- The upstream git repo to clone (`git://g.csail.mit.edu/xv6-labs-2021`)
-- The 10 lab branches and their work branch naming convention
-- The `LABS.md` tracker to drop into your project
+Hook scripts can be slow (toolchain installs, git clones). If setup is interrupted, karya records `setup_status: in_progress` in `.karya-project` and tells you what to do:
 
-You don't need to look any of this up.
+```
+Project setup was interrupted at /Users/you/workspace/mit/learning/mit/6s081
+  Run with --continue to resume post-create hooks
+  Run with --restart  to delete and start fresh
+```
+
+**Resume from where it stopped:**
+```bash
+karya create project --uri kosh://learning/mit/6s081 --continue
+```
+
+**Delete and start over:**
+```bash
+karya create project --uri kosh://learning/mit/6s081 --restart
+```
+
+A project already fully set up will refuse a plain `create` and suggest `--restart`.
+
+### GitHub mirror: no duplicates across machines
+
+The first time you set up a project that creates a GitHub mirror, karya stores the mirror URL in `.karya-project` as `github_mirror`. On subsequent runs — whether `--continue`, a new directory on the same machine, or a fresh install on a different machine — karya reads this stored URL and skips all GitHub interaction.
+
+On a truly fresh machine with no stored URL and no matching repo on GitHub, karya prompts once:
+```
+No GitHub mirror found for this project.
+Default: https://github.com/you/learning-mit-6s081 (will be created as private)
+Enter existing mirror URL, or press Enter to create the default:
+```
+
+Paste your existing repo URL (e.g. `https://github.com/you/xv6-labs-2021.git`) and you're done — no duplicate repo is ever created.
 
 ---
 
@@ -190,4 +269,9 @@ Karya removes the directory and prints the git cleanup steps needed.
 
 ## Open Topics
 
-- **Template versioning** — how karya handles upgrades without breaking existing workspaces: [Issue #7](https://github.com/vinit-sinha/karya/issues/7)
+| Issue | Title |
+|-------|-------|
+| [#7](https://github.com/vinit-sinha/karya/issues/7) | Template versioning across karya upgrades |
+| [#11](https://github.com/vinit-sinha/karya/issues/11) | Workstate save/resume hardening |
+| [#12](https://github.com/vinit-sinha/karya/issues/12) | Obsidian integration (`obs://` URI scheme) |
+| [#15](https://github.com/vinit-sinha/karya/issues/15) | Hook step-level lifecycle (`is_resumable`, resume/restart per step) |
