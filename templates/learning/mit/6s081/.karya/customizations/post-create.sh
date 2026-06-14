@@ -5,6 +5,36 @@
 #   karya create project --uri kosh://learning/mit/6s081 --continue  (resume)
 set -euo pipefail
 
+# ── Windows guard ─────────────────────────────────────────────────────────────
+# Git Bash / MSYS2 on Windows: bash runs but brew/QEMU don't exist.
+# WSL reports as Linux — that's fine, fall through.
+# Native Windows (no bash): karya's run_hook() catches this before we ever get here.
+_OS="$(uname -s 2>/dev/null || echo "unknown")"
+if [[ "$_OS" == MINGW* || "$_OS" == MSYS* || "$_OS" == CYGWIN* ]]; then
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════════╗"
+    echo "║  6.S081 requires Linux tools (QEMU, RISC-V toolchain, make).   ║"
+    echo "║  On Windows, use WSL2 — MIT recommends this for the course.    ║"
+    echo "╚══════════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "  Setup steps:"
+    echo "  1. Install WSL2 + Ubuntu (run in PowerShell as admin):"
+    echo "       wsl --install"
+    echo "  2. Open an Ubuntu terminal, then install karya inside WSL:"
+    echo "       git clone https://github.com/vinit-sinha/karya ~/tools/karya"
+    echo "       echo 'export PATH=\"\$HOME/tools/karya/bin:\$PATH\"' >> ~/.bashrc"
+    echo "       source ~/.bashrc"
+    echo "  3. Initialise your workspace inside WSL and re-run:"
+    echo "       mkdir -p ~/workspace/mit && cd ~/workspace/mit"
+    echo "       karya init workspace"
+    echo "       karya create project --uri kosh://learning/mit/6s081"
+    echo ""
+    echo "  Why WSL? QEMU and the RISC-V toolchain don't run natively on Windows."
+    echo "  MIT's own instructions for Windows: https://pdos.csail.mit.edu/6.828/2021/tools.html"
+    echo ""
+    exit 1
+fi
+
 CUSTOMIZATION_DIR="$(cd "$(dirname "$0")" && pwd)"
 FILES_DIR="$CUSTOMIZATION_DIR/files"
 PROJECT_ROOT="$PWD"
