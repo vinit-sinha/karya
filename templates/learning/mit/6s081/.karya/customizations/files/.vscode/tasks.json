@@ -18,7 +18,7 @@
       "command": "bash scripts/lab-done.sh ${input:labName}",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
-      "group": "none",
+      "group": "test",
       "presentation": { "reveal": "always", "panel": "shared", "clear": false }
     },
     {
@@ -28,17 +28,17 @@
       "command": "make qemu",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": true },
+      "group": "none",
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
       "label": "xv6: run tests (make grade)",
-      "detail": "Run all tests for the current lab branch",
+      "detail": "Run all tests for the current lab branch — Cmd+Shift+T to pick",
       "type": "shell",
       "command": "make grade",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
       "problemMatcher": [],
-      "group": { "kind": "test", "isDefault": true },
+      "group": "test",
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {

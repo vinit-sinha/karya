@@ -110,6 +110,19 @@ if [[ -z "$CURRENT_BRANCH" ]]; then
 else
     echo "[6s081] Current branch: $CURRENT_BRANCH"
 fi
+
+# Patch Makefile for newer GCC compatibility.
+# xv6-labs-2021 was written for GCC 10; newer toolchains add -Winfinite-recursion
+# which flags sh.c's intentional tail-calls as errors (-Werror turns them fatal).
+MAKEFILE="$STARTER/Makefile"
+if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=infinite-recursion" "$MAKEFILE"; then
+    # Insert after the first CFLAGS := line
+    sed -i.bak 's/\(CFLAGS :=.*\)/\1\nCFLAGS += -Wno-error=infinite-recursion/' "$MAKEFILE"
+    rm -f "$MAKEFILE.bak"
+    echo "[6s081] Patched Makefile: added -Wno-error=infinite-recursion (GCC compat)"
+else
+    echo "[6s081] Makefile already patched."
+fi
 cd "$PROJECT_ROOT"
 
 # ── 3. GitHub private mirror ─────────────────────────────────────────────────
