@@ -134,8 +134,8 @@ def find_workspace_root(start: Path) -> Path | None:
         current = current.parent
 
 
-def write_marker(directory: Path, level: str, uri: str) -> None:
-    """Write a .karya-<level> JSON marker file. No-op if it already exists."""
+def write_marker(directory: Path, level: str, uri: str, extra: dict | None = None) -> None:
+    """Write a .karya-<level> JSON marker file. No-op if it already exists (unless extra provided)."""
     marker_name = {
         "workspace":   MARKER_WORKSPACE,
         "domain":      MARKER_DOMAIN,
@@ -144,17 +144,37 @@ def write_marker(directory: Path, level: str, uri: str) -> None:
         "subproject":  MARKER_SUBPROJECT,
     }[level]
     marker_path = directory / marker_name
-    if marker_path.exists():
+    if marker_path.exists() and not extra:
         return
+    payload: dict = {
+        "karya_version": KARYA_VERSION,
+        "level": level,
+        "uri": uri,
+        "created_at": datetime.date.today().isoformat(),
+    }
+    if extra:
+        payload.update(extra)
     marker_path.write_text(
-        json.dumps({
-            "karya_version": KARYA_VERSION,
-            "level": level,
-            "uri": uri,
-            "created_at": datetime.date.today().isoformat(),
-        }, indent=2),
+        json.dumps(payload, indent=2),
         encoding="utf-8",
     )
+
+
+def read_project_marker(project_root: Path) -> dict:
+    marker_path = project_root / MARKER_PROJECT
+    if not marker_path.exists():
+        return {}
+    try:
+        return json.loads(marker_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def set_project_setup_status(project_root: Path, uri: str, status: str) -> None:
+    marker_path = project_root / MARKER_PROJECT
+    data = read_project_marker(project_root)
+    data["setup_status"] = status
+    marker_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def init_workspace() -> None:
@@ -267,13 +287,19 @@ def subst_project_metadata(content: str, name: str, uri: str, created: str) -> s
 
 # ── commands ──────────────────────────────────────────────────────────────────
 
-def create_project(uri: str) -> None:
+def create_project(uri: str, mode: str = "new") -> None:
+    """
+    mode: "new"     — first-time create; fails if project exists (unless interrupted)
+          "continue" — re-run post-create hooks on an interrupted project
+          "restart"  — delete and recreate from scratch
+    """
     scheme, path = parse_uri(uri)
     if scheme != "kosh":
         fail(f"'karya create project' requires a kosh:// URI — got: {uri}")
 
     uri_parts = parse_kosh_path(path)
     domain = uri_parts[0]
+    project_name = uri_parts[-1]
 
     workspace_root = find_workspace_root(Path.cwd())
     if workspace_root is None:
@@ -282,9 +308,46 @@ def create_project(uri: str) -> None:
     template_root = find_template_root(domain)
     project_root = resolve_uri(uri, workspace_root)
 
+    # ── Detect existing state ────────────────────────────────────────────────
     if project_root.exists():
-        fail(f"Project already exists at {project_root}")
+        marker = read_project_marker(project_root)
+        setup_status = marker.get("setup_status", "complete")
 
+        if mode == "new":
+            if setup_status == "in_progress":
+                print(f"Project setup was interrupted at {project_root}")
+                print(f"  Run with --continue to resume post-create hooks")
+                print(f"  Run with --restart  to delete and start fresh")
+                return
+            else:
+                fail(
+                    f"Project already exists and is fully set up at {project_root}\n"
+                    f"  Use --restart to delete and recreate it."
+                )
+
+        if mode == "restart":
+            import shutil as _shutil
+            print(f"Removing existing project at {project_root} ...")
+            _shutil.rmtree(project_root)
+            # Fall through to fresh create below
+
+        if mode == "continue":
+            if setup_status == "complete":
+                print(f"Project at {project_root} is already fully set up.")
+                print(f"  Use --restart to delete and recreate it.")
+                return
+            print(f"Continuing setup of '{project_name}' at {project_root} ...")
+            hooks = discover_hooks(uri_parts)
+            set_project_setup_status(project_root, uri, "in_progress")
+            if hooks:
+                print("Post-create hooks:")
+            for hook_dir in hooks:
+                run_hook(hook_dir, "post-create", project_root)
+            set_project_setup_status(project_root, uri, "complete")
+            print(f"Setup of '{project_name}' complete.")
+            return
+
+    # ── Fresh create ─────────────────────────────────────────────────────────
     hooks = discover_hooks(uri_parts)
 
     # Pre-create hooks — project doesn't exist yet, run from workspace root
@@ -297,16 +360,17 @@ def create_project(uri: str) -> None:
     project_root.parent.mkdir(parents=True, exist_ok=True)
     copy_template(template_root, project_root)
 
-    # Write marker files at each level
+    # Write marker files at each level; project marker gets setup_status=in_progress
     current = workspace_root
     for i, part in enumerate(uri_parts):
         current = current / part
         current.mkdir(parents=True, exist_ok=True)
         partial_uri = "kosh://" + "/".join(uri_parts[: i + 1])
-        write_marker(current, segment_level(i), partial_uri)
+        level = segment_level(i)
+        extra = {"setup_status": "in_progress"} if level == "project" else None
+        write_marker(current, level, partial_uri, extra=extra)
 
     # Substitute metadata in PROJECT.md
-    project_name = uri_parts[-1]
     created_date = datetime.date.today().isoformat()
     project_md_path = project_root / PROJECT_FILE
     if project_md_path.exists():
@@ -316,15 +380,14 @@ def create_project(uri: str) -> None:
 
     readme_path = project_root / "README.md"
     if readme_path.exists():
-        uri_parts = parse_kosh_path(uri.split("://", 1)[1]) if "://" in uri else []
-        domain = uri_parts[0] if len(uri_parts) > 0 else ""
-        collection = uri_parts[1] if len(uri_parts) > 1 else ""
-        project = uri_parts[2] if len(uri_parts) > 2 else project_name
+        d = uri_parts[0] if len(uri_parts) > 0 else ""
+        c = uri_parts[1] if len(uri_parts) > 1 else ""
+        p = uri_parts[2] if len(uri_parts) > 2 else project_name
         readme = load_text(readme_path)
         readme = readme.replace("{{PROJECT_NAME}}", project_name)
-        readme = readme.replace("{{DOMAIN}}", domain)
-        readme = readme.replace("{{COLLECTION}}", collection)
-        readme = readme.replace("{{PROJECT}}", project)
+        readme = readme.replace("{{DOMAIN}}", d)
+        readme = readme.replace("{{COLLECTION}}", c)
+        readme = readme.replace("{{PROJECT}}", p)
         readme = readme.replace("PROJECT_NAME", project_name)  # legacy
         write_text(readme_path, readme)
 
@@ -357,6 +420,9 @@ def create_project(uri: str) -> None:
         print("Post-create hooks:")
     for hook_dir in hooks:
         run_hook(hook_dir, "post-create", project_root)
+
+    set_project_setup_status(project_root, uri, "complete")
+    print(f"Setup of '{project_name}' complete.")
 
 
 def remove_project(uri: str) -> None:
@@ -782,6 +848,11 @@ def main() -> None:
     create_sub = create_parser.add_subparsers(dest="entity", required=True)
     create_project_parser = create_sub.add_parser("project")
     create_project_parser.add_argument("--uri", required=True, help="kosh:// URI, e.g. kosh://learning/mit/6s081")
+    mode_group = create_project_parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--continue", dest="mode", action="store_const", const="continue",
+                            help="Resume post-create hooks on an interrupted project")
+    mode_group.add_argument("--restart", dest="mode", action="store_const", const="restart",
+                            help="Delete the project and recreate from scratch")
 
     # publish project
     publish_parser = subparsers.add_parser("publish")
@@ -813,7 +884,7 @@ def main() -> None:
     if args.command == "init" and args.entity == "workspace":
         init_workspace()
     elif args.command == "create" and args.entity == "project":
-        create_project(args.uri)
+        create_project(args.uri, mode=getattr(args, "mode", None) or "new")
     elif args.command == "publish" and args.entity == "project":
         publish_project(
             getattr(args, "uri", None),
