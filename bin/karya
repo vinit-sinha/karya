@@ -316,7 +316,17 @@ def create_project(uri: str) -> None:
 
     readme_path = project_root / "README.md"
     if readme_path.exists():
-        write_text(readme_path, load_text(readme_path).replace("PROJECT_NAME", project_name))
+        uri_parts = parse_kosh_path(uri.split("://", 1)[1]) if "://" in uri else []
+        domain = uri_parts[0] if len(uri_parts) > 0 else ""
+        collection = uri_parts[1] if len(uri_parts) > 1 else ""
+        project = uri_parts[2] if len(uri_parts) > 2 else project_name
+        readme = load_text(readme_path)
+        readme = readme.replace("{{PROJECT_NAME}}", project_name)
+        readme = readme.replace("{{DOMAIN}}", domain)
+        readme = readme.replace("{{COLLECTION}}", collection)
+        readme = readme.replace("{{PROJECT}}", project)
+        readme = readme.replace("PROJECT_NAME", project_name)  # legacy
+        write_text(readme_path, readme)
 
     print(f"Created project '{project_name}' at {project_root}")
 
