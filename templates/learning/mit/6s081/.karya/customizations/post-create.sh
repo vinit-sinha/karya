@@ -15,18 +15,21 @@ WORKSPACE_ROOT="$dir"
 
 echo "[6s081] post-create: project root = $PROJECT_ROOT"
 
-# ── 1. Toolchain check ──────────────────────────────────────────────────────
+# ── 1. Toolchain + QEMU install ─────────────────────────────────────────────
 echo "[6s081] Checking RISC-V toolchain and QEMU..."
+if ! command -v brew &>/dev/null; then
+    echo "[6s081] ERROR: Homebrew not found. Install it from https://brew.sh then re-run: bash $0"
+    exit 1
+fi
 if ! command -v riscv64-unknown-elf-gcc &>/dev/null; then
-    echo "[6s081] WARNING: riscv64-unknown-elf-gcc not found."
-    echo "        Install via Homebrew: brew install riscv-gnu-toolchain"
-    echo "        Then re-run this hook: bash $0"
+    echo "[6s081] Installing riscv-gnu-toolchain via Homebrew (this may take a few minutes)..."
+    brew install riscv-gnu-toolchain
 fi
 if ! command -v qemu-system-riscv64 &>/dev/null; then
-    echo "[6s081] WARNING: qemu-system-riscv64 not found."
-    echo "        Install via Homebrew: brew install qemu"
-    echo "        Then re-run this hook: bash $0"
+    echo "[6s081] Installing qemu via Homebrew..."
+    brew install qemu
 fi
+echo "[6s081] Toolchain OK."
 
 # ── 2. Clone xv6 lab repo ───────────────────────────────────────────────────
 STARTER="$PROJECT_ROOT/starter-code/xv6-labs-2021"
@@ -58,6 +61,8 @@ if ! git remote get-url personal &>/dev/null; then
 fi
 
 echo "[6s081] Pushing all lab branches to personal remote..."
+# MIT's remote HEAD is unset; check out util explicitly so there's a ref to push.
+git checkout util 2>/dev/null || true
 git push personal --all || echo "[6s081] WARNING: push failed (may need auth or network)."
 
 cd "$PROJECT_ROOT"
