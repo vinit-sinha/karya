@@ -251,7 +251,12 @@ else
                 echo "[6s081] No GitHub mirror found for this project."
                 echo "        Default: https://github.com/$DEFAULT_REPO (will be created as private)"
                 echo -n "        Enter existing mirror URL, or press Enter to create the default: "
-                read -r USER_INPUT </dev/tty
+                if [[ -c /dev/tty ]]; then
+                    read -r USER_INPUT </dev/tty
+                else
+                    USER_INPUT=""
+                    echo "(non-interactive — using default)"
+                fi
                 if [[ -n "$USER_INPUT" ]]; then
                     PERSONAL_REMOTE_URL=$(normalise_to_https "$USER_INPUT")
                     echo "[6s081] Using provided mirror: $PERSONAL_REMOTE_URL"
