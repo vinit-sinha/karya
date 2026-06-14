@@ -61,9 +61,24 @@ echo "[6s081] Pushing all lab branches to personal remote..."
 git push personal --all || echo "[6s081] WARNING: push failed (may need auth or network)."
 
 cd "$PROJECT_ROOT"
+
+# ── 4. VS Code tasks ────────────────────────────────────────────────────────
+VSCODE_DIR="$PROJECT_ROOT/.vscode"
+TASKS_SRC="$CUSTOMIZATION_DIR/files/.vscode/tasks.json"
+if [[ -f "$TASKS_SRC" ]]; then
+    mkdir -p "$VSCODE_DIR"
+    cp "$TASKS_SRC" "$VSCODE_DIR/tasks.json"
+    echo "[6s081] Installed .vscode/tasks.json (xv6 + karya tasks)"
+fi
+
+# ── 5. Copy lab tracker ─────────────────────────────────────────────────────
+cp "$CUSTOMIZATION_DIR/files/LABS.md" "$PROJECT_ROOT/LABS.md"
+echo "[6s081] Installed LABS.md"
+
 echo "[6s081] Setup complete."
 echo ""
 echo "  Next steps:"
 echo "    cd starter-code/xv6-labs-2021"
 echo "    git checkout util        # start lab 0"
 echo "    make qemu                # boot xv6 (Ctrl-a x to exit)"
+echo "    Open in VS Code and use Cmd+Shift+B to run 'make qemu'"

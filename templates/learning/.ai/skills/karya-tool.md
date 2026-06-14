@@ -1,19 +1,20 @@
 # Karya Tool Skill
 
-Skill: Karya workspace/project management
+Skill: karya workspace and project management
 
 Description:
-- Understand and use the Karya CLI for workspace and project lifecycle operations.
-- Discover the current workspace root and validate MPS paths.
-- Create, publish, and remove projects using the Karya conventions.
-- Assist with repository and GitHub repository derivation for projects.
+- Understand and use the karya CLI for workspace and project lifecycle operations.
+- Identify the current workspace root (look for `.karya-workspace` marker file).
+- Create, publish, and remove projects using `kosh://` URIs.
+- Save and restore work state checkpoints.
 
 When to use:
-- When the user asks for Karya-specific project tooling or metadata handling.
-- When managing learning, experiment, or project templates in the workspace.
-- When generating or updating Karya workspace documentation.
+- When the user asks to create, publish, or remove a project.
+- When saving or resuming work across machines or sessions.
+- When the user references a `kosh://` URI.
 
 Capabilities:
-- Recognize the workspace structure and supported project types.
-- Help the agent choose the right Karya command for a task.
-- Map MPS identifiers to repository and project paths.
+- Recognise the workspace hierarchy: workspace → domain → collection → project.
+- Map `kosh://domain/collection/project` URIs to filesystem paths.
+- Run `karya workstate save/resume/list` for checkpoint management.
+- Run `karya create project --uri kosh://...` to scaffold new projects.

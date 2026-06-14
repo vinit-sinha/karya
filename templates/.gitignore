@@ -1,4 +1,6 @@
-# In user project trees, .karya/ is internal state (excluded by root .gitignore).
-# Inside the templates/ directory, .karya/customizations/ IS the shipped content — include it.
+# In user project trees, .karya/ and .vscode/ are excluded by the root .gitignore.
+# Inside templates/ these directories ARE shipped content — include them.
 !.karya/
 !.karya/**
+!.vscode/
+!.vscode/**

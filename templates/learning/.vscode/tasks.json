@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Checkpoint: save",
+      "type": "shell",
+      "command": "karya workstate save",
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Checkpoint: list",
+      "type": "shell",
+      "command": "karya workstate list",
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Checkpoint: resume",
+      "type": "shell",
+      "command": "karya workstate resume --apply",
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Git: status",
+      "type": "shell",
+      "command": "git status",
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Git: commit all",
+      "type": "shell",
+      "command": "git add -A && git commit",
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "xv6: boot (make qemu)",
+      "type": "shell",
+      "command": "make qemu",
+      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "xv6: run tests (make grade)",
+      "type": "shell",
+      "command": "make grade",
+      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
+      "problemMatcher": [],
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "xv6: debug session (make qemu-gdb)",
+      "type": "shell",
+      "command": "make qemu-gdb",
+      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "xv6: clean",
+      "type": "shell",
+      "command": "make clean",
+      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Lab: switch branch",
+      "type": "shell",
+      "command": "git checkout ${input:labBranch}",
+      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Checkpoint: save",
+      "type": "shell",
+      "command": "karya workstate save",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Checkpoint: list",
+      "type": "shell",
+      "command": "karya workstate list",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Checkpoint: resume",
+      "type": "shell",
+      "command": "karya workstate resume --apply",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "labBranch",
+      "type": "pickString",
+      "description": "Which lab branch?",
+      "options": ["util", "syscall", "pagetable", "traps", "cow", "thread", "net", "lock", "fs", "mmap"],
+      "default": "util"
+    }
+  ]
+}
