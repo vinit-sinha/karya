@@ -22,7 +22,8 @@ if ! command -v brew &>/dev/null; then
     exit 1
 fi
 if ! command -v riscv64-unknown-elf-gcc &>/dev/null; then
-    echo "[6s081] Installing riscv-gnu-toolchain via Homebrew (this may take a few minutes)..."
+    echo "[6s081] Installing RISC-V toolchain via Homebrew (this may take a few minutes)..."
+    brew tap riscv-software-src/riscv 2>/dev/null || true
     brew install riscv-gnu-toolchain
 fi
 if ! command -v qemu-system-riscv64 &>/dev/null; then
