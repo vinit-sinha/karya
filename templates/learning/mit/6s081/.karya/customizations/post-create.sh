@@ -129,6 +129,40 @@ cd "$PROJECT_ROOT"
 echo ""
 echo "[6s081] ── Step 3/5: GitHub private mirror ─────────────────────────────"
 PERSONAL_REMOTE_URL="(not configured)"
+
+# Helper: normalise git remote URL to HTTPS
+normalise_to_https() {
+    echo "$1" | sed 's|^git@github\.com:\(.*\)$|https://github.com/\1|'
+}
+
+# Helper: read a field from .karya-project JSON
+read_marker_field() {
+    python3 -c "
+import json, sys
+try:
+    d = json.load(open('$PROJECT_ROOT/.karya-project'))
+    print(d.get('$1', ''))
+except Exception:
+    print('')
+" 2>/dev/null || echo ""
+}
+
+# Helper: write a field into .karya-project JSON
+write_marker_field() {
+    local key="$1" value="$2"
+    python3 -c "
+import json
+path = '$PROJECT_ROOT/.karya-project'
+try:
+    d = json.load(open(path))
+except Exception:
+    d = {}
+d['$key'] = '$value'
+json.dump(d, open(path, 'w'), indent=2)
+print('')
+" 2>/dev/null || true
+}
+
 if ! command -v gh &>/dev/null; then
     echo "[6s081] WARNING: gh CLI not found — skipping GitHub mirror."
     echo "        Install: brew install gh && gh auth login, then re-run with --continue"
@@ -141,35 +175,65 @@ else
         # Wire gh as the HTTPS credential helper so no SSH keys are needed
         gh auth setup-git 2>/dev/null || true
 
-        # Check if a personal remote already exists in the clone
-        # It may be SSH (git@github.com:user/repo.git) — normalise to HTTPS
+        # ── Priority 1: use URL already stored in .karya-project (idempotent across re-runs)
+        STORED_MIRROR=$(read_marker_field "github_mirror")
         cd "$STARTER"
         EXISTING_REMOTE=$(git remote get-url personal 2>/dev/null || echo "")
-        if [[ -n "$EXISTING_REMOTE" ]]; then
-            # Convert SSH → HTTPS: git@github.com:user/repo.git → https://github.com/user/repo.git
-            HTTPS_REMOTE=$(echo "$EXISTING_REMOTE" \
-                | sed 's|^git@github\.com:\(.*\)$|https://github.com/\1|')
-            # Extract repo name from URL (strip .git suffix)
-            INFERRED_REPO=$(basename "$HTTPS_REMOTE" .git)
-            FULL_REPO="$GITHUB_USER/$INFERRED_REPO"
+
+        if [[ -n "$STORED_MIRROR" ]]; then
+            # Already set up on a previous run — just make sure the local remote matches
+            echo "[6s081] Using stored mirror: $STORED_MIRROR"
+            if [[ -z "$EXISTING_REMOTE" ]]; then
+                git remote add personal "$STORED_MIRROR"
+                echo "[6s081] Added personal remote → $STORED_MIRROR"
+            elif [[ "$(normalise_to_https "$EXISTING_REMOTE")" != "$STORED_MIRROR" ]]; then
+                git remote set-url personal "$STORED_MIRROR"
+                echo "[6s081] Updated personal remote → $STORED_MIRROR"
+            fi
+            PERSONAL_REMOTE_URL="$STORED_MIRROR"
+
+        elif [[ -n "$EXISTING_REMOTE" ]]; then
+            # ── Priority 2: personal remote already in clone — normalise and store it
+            HTTPS_REMOTE=$(normalise_to_https "$EXISTING_REMOTE")
             echo "[6s081] Found existing personal remote: $EXISTING_REMOTE"
             if [[ "$EXISTING_REMOTE" != "$HTTPS_REMOTE" ]]; then
                 git remote set-url personal "$HTTPS_REMOTE"
                 echo "[6s081] Converted SSH → HTTPS: $HTTPS_REMOTE"
             fi
             PERSONAL_REMOTE_URL="$HTTPS_REMOTE"
-        else
             cd "$PROJECT_ROOT"
-            FULL_REPO="$GITHUB_USER/$REPO_NAME"
-            # Create repo if it doesn't exist
-            if gh repo view "$FULL_REPO" &>/dev/null 2>&1; then
-                echo "[6s081] GitHub repo already exists: https://github.com/$FULL_REPO"
+            write_marker_field "github_mirror" "$PERSONAL_REMOTE_URL"
+            cd "$STARTER"
+
+        else
+            # ── Priority 3: nothing known — check derived name, then ask user
+            cd "$PROJECT_ROOT"
+            DEFAULT_REPO="$GITHUB_USER/$REPO_NAME"
+            DEFAULT_URL="https://github.com/$DEFAULT_REPO.git"
+
+            if gh repo view "$DEFAULT_REPO" &>/dev/null 2>&1; then
+                # Derived repo exists — use it without prompting
+                echo "[6s081] Found existing GitHub repo: https://github.com/$DEFAULT_REPO"
+                PERSONAL_REMOTE_URL="$DEFAULT_URL"
             else
-                echo "[6s081] Creating private GitHub repo: https://github.com/$FULL_REPO ..."
-                gh repo create "$FULL_REPO" --private \
-                    --description "MIT 6.S081 OS Engineering — personal lab repo"
+                # Unknown — prompt once, store forever
+                echo ""
+                echo "[6s081] No GitHub mirror found for this project."
+                echo "        Default: https://github.com/$DEFAULT_REPO (will be created as private)"
+                echo -n "        Enter existing mirror URL, or press Enter to create the default: "
+                read -r USER_INPUT </dev/tty
+                if [[ -n "$USER_INPUT" ]]; then
+                    PERSONAL_REMOTE_URL=$(normalise_to_https "$USER_INPUT")
+                    echo "[6s081] Using provided mirror: $PERSONAL_REMOTE_URL"
+                else
+                    echo "[6s081] Creating private GitHub repo: https://github.com/$DEFAULT_REPO ..."
+                    gh repo create "$DEFAULT_REPO" --private \
+                        --description "MIT 6.S081 OS Engineering — personal lab repo"
+                    PERSONAL_REMOTE_URL="$DEFAULT_URL"
+                fi
             fi
-            PERSONAL_REMOTE_URL="https://github.com/$FULL_REPO.git"
+
+            write_marker_field "github_mirror" "$PERSONAL_REMOTE_URL"
             cd "$STARTER"
             git remote add personal "$PERSONAL_REMOTE_URL"
             echo "[6s081] Added remote 'personal' → $PERSONAL_REMOTE_URL"
