@@ -42,7 +42,7 @@ karya init workspace
 
 **2. Create a project:**
 ```bash
-karya create project --type learning --mps learning/mit/6s081
+karya create project --uri kosh://learning/mit/6s081
 ```
 
 **3. Save your work state:**
@@ -59,43 +59,24 @@ karya workstate resume
 ## Commands
 
 ```
-karya init workspace                          Create a new workspace in the current directory
-karya create project --type TYPE --mps MPS   Create a new project from a template
-karya publish project [--mps MPS]            Mark a project as published and wire up a git remote
-karya remove project --mps MPS               Remove a project directory
-karya workstate save [NAME]                  Save current git state as a named checkpoint
-karya workstate resume [NAME]                Show or restore a saved checkpoint
-karya workstate list                         List all saved checkpoints
+karya init workspace                        Create a new workspace in the current directory
+karya create project --uri kosh://...       Create a new project from the template hierarchy
+karya publish project [--uri kosh://...]    Publish a project and wire up a git remote
+karya remove project --uri kosh://...       Remove a project directory
+karya workstate save [NAME]                 Save current git state as a named checkpoint
+karya workstate resume [NAME]               Show or restore a saved checkpoint
+karya workstate list                        List all saved checkpoints
 ```
+
+Projects are addressed using the `kosh://` URI scheme — see [docs/user-guide.md](docs/user-guide.md) for details.
 
 ## Customizations
 
-Workspaces support hook scripts and file overlays that run automatically when projects are created.
+Karya ships with built-in knowledge for well-known projects, encoded directly in the `templates/` hierarchy. Each template node can have a `.karya/customizations/` directory containing `pre-create.sh` and `post-create.sh` hook scripts and a `files/` asset directory.
 
-Place scripts under `customizations/` in your workspace, mirroring the MPS path:
+When you run `karya create project --uri kosh://learning/mit/6s081`, hooks run automatically from most-general to most-specific (root → domain → collection → project). Scripts need no arguments or environment variables — they locate context by walking up the filesystem via marker files.
 
-```
-customizations/
-└── learning/
-    └── mit/
-        ├── post-create.sh          # runs after every MIT project is created
-        └── 6s081/
-            └── files/
-                └── LABS.md         # overlaid into every 6s081 project
-```
-
-Scripts receive these environment variables:
-
-| Variable | Description |
-|----------|-------------|
-| `KARYA_WORKSPACE_ROOT` | Absolute path to the workspace |
-| `KARYA_PROJECT_ROOT` | Absolute path to the new project |
-| `KARYA_MPS` | MPS of the project (e.g. `learning/mit/6s081`) |
-| `KARYA_TYPE` | Project type (e.g. `learning`) |
-| `KARYA_PROJECT_NAME` | Project name (last segment of MPS) |
-
-- `pre-create.sh` — runs before project creation; non-zero exit aborts the command
-- `post-create.sh` — runs after project creation; non-zero exit warns but does not undo
+See [docs/design.md](docs/design.md) for the full customization system design.
 
 ## Project Structure
 

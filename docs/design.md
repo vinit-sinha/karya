@@ -101,37 +101,37 @@ Marker files contain metadata in JSON format:
 templates/
 ├── .karya/
 │   └── customisations/
-│       ├── ROOT.md
-│       ├── pre-create.sh
+│       ├── ROOT.md             ← documents what root hooks do
+│       ├── pre-create.sh       ← runs for every project
 │       ├── post-create.sh
-│       └── files/
+│       └── files/              ← assets for root-level hooks only
 ├── learning/
-│   ├── PROJECT.md          ← copied into project
-│   ├── README.md           ← copied into project
-│   ├── starter-code/       ← copied into project
-│   ├── study_materials/    ← copied into project
-│   ├── work/               ← copied into project
-│   └── .karya/
-│       └── customisations/
-│           ├── learning.md
-│           ├── pre-create.sh
-│           ├── post-create.sh
-│           └── files/
-│               └── mit/
-│                   └── .karya/
-│                       └── customisations/
-│                           ├── mit.md
-│                           ├── pre-create.sh
-│                           ├── post-create.sh
-│                           └── files/
-│                               └── 6s081/
-│                                   └── .karya/
-│                                       └── customisations/
-│                                           ├── 6s081.md
-│                                           ├── pre-create.sh
-│                                           ├── post-create.sh
-│                                           └── files/
-│                                               └── LABS.md
+│   ├── PROJECT.md              ← copied into project
+│   ├── README.md               ← copied into project
+│   ├── starter-code/           ← copied into project
+│   ├── study_materials/        ← copied into project
+│   ├── work/                   ← copied into project
+│   ├── .karya/
+│   │   └── customisations/
+│   │       ├── learning.md     ← documents what domain hooks do
+│   │       ├── pre-create.sh   ← runs for every learning/* project
+│   │       ├── post-create.sh
+│   │       └── files/          ← assets for domain-level hooks only
+│   └── mit/                    ← MPS node (has .karya/ child — never copied)
+│       ├── .karya/
+│       │   └── customisations/
+│       │       ├── mit.md
+│       │       ├── pre-create.sh   ← runs for every learning/mit/* project
+│       │       ├── post-create.sh
+│       │       └── files/
+│       └── 6s081/              ← MPS node
+│           └── .karya/
+│               └── customisations/
+│                   ├── 6s081.md
+│                   ├── pre-create.sh   ← runs only for learning/mit/6s081
+│                   ├── post-create.sh
+│                   └── files/
+│                       └── LABS.md     ← overlaid by post-create.sh
 ```
 
 ### Rules
@@ -168,13 +168,13 @@ FILES_DIR="$CUSTOMISATION_DIR/files"
 ## Commands
 
 ```
-karya init workspace                    Initialise a workspace in the current directory
-karya create project --uri kosh://...   Create a project from the template hierarchy
-karya publish project --uri kosh://...  Publish a project to a remote repository
-karya remove project --uri kosh://...   Remove a project
-karya workstate save [NAME]             Save current git state as a checkpoint
-karya workstate resume [NAME]           Restore or inspect a saved checkpoint
-karya workstate list                    List all saved checkpoints
+karya init workspace                         Initialise a workspace in the current directory
+karya create project --uri kosh://...        Create a project from the template hierarchy
+karya publish project [--uri kosh://...]     Publish a project to a remote repository
+karya remove project --uri kosh://...        Remove a project
+karya workstate save [NAME] [--description]  Save current git state as a named checkpoint
+karya workstate resume [NAME] [--apply]      Restore or inspect a saved checkpoint
+karya workstate list                         List all saved checkpoints
 ```
 
 ---
