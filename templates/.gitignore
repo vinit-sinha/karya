@@ -1,0 +1,4 @@
+# In user project trees, .karya/ is internal state (excluded by root .gitignore).
+# Inside the templates/ directory, .karya/customizations/ IS the shipped content — include it.
+!.karya/
+!.karya/**
