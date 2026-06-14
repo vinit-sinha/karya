@@ -28,9 +28,10 @@ karya --help
 | Concept | Description |
 |---------|-------------|
 | **Workspace** | A root directory managed by Karya, containing all your projects |
-| **Project** | A structured directory with templates, git repo, and metadata |
-| **MPS** | Mount Path Slug — the relative path of a project within the workspace (e.g. `learning/mit/6s081`) |
-| **Type** | Project category: `learning`, `experiment`, or `project` |
+| **Domain** | Broad area of work: `learning`, `experiments`, `projects` |
+| **Collection** | A body of work within a domain (e.g. `mit` under `learning`) |
+| **Project** | The primary unit of work — a structured directory with templates, git repo, and metadata |
+| **`kosh://` URI** | Karya's URI scheme to identify resources: `kosh://domain/collection/project` |
 
 ## Quick Start
 
@@ -80,7 +81,7 @@ See [docs/design.md](docs/design.md) for the full customization system design.
 
 ## Project Structure
 
-After `karya create project --type learning --mps learning/mit/6s081`:
+After `karya create project --uri kosh://learning/mit/6s081`:
 
 ```
 learning/mit/6s081/

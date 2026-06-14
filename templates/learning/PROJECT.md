@@ -10,6 +10,10 @@ Status: Active
 
 ## Description
 
+## Goals
+
+## Resources
+
 ## Publication
 
 Repository:
