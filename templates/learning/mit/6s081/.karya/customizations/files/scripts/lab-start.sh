@@ -22,16 +22,20 @@ fi
 
 echo "── Lab: $LAB ──────────────────────────────────────────────────────────"
 
-# Checkout the lab branch in xv6
+# Checkout the lab branch in xv6.
+# On a fresh clone, lab branches only exist as remote refs (refs/remotes/origin/<lab>),
+# not local branches. Try to create a local tracking branch first; fall back to
+# switching to an existing local branch if it's already been checked out before.
 echo "Checking out branch '$LAB' in xv6..."
 cd "$XV6"
-if ! git rev-parse --verify "$LAB" &>/dev/null; then
-    echo "ERROR: branch '$LAB' not found."
+if ! git show-ref --verify --quiet "refs/remotes/origin/$LAB" && \
+   ! git show-ref --verify --quiet "refs/heads/$LAB"; then
+    echo "ERROR: branch '$LAB' not found in xv6 repo."
     echo "Available branches:"
     git branch -a | grep -v HEAD
     exit 1
 fi
-git checkout "$LAB"
+git checkout -b "$LAB" --track "origin/$LAB" 2>/dev/null || git checkout "$LAB"
 echo "xv6 is on branch: $LAB"
 cd "$PROJECT_ROOT"
 
