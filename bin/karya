@@ -299,11 +299,26 @@ def subst_project_metadata(content: str, name: str, uri: str, created: str) -> s
 
 # ── commands ──────────────────────────────────────────────────────────────────
 
-def create_project(uri: str, mode: str = "new") -> None:
+def _auto_publish(project_root: Path, uri: str, publish: bool) -> None:
+    """Publish the project to GitHub after successful setup, unless --no-publish was given."""
+    if not publish:
+        print(f"  Skipping publish (--no-publish). To publish later:")
+        print(f"    karya publish project --uri {uri}")
+        return
+    print(f"\nPublishing project to GitHub...")
+    try:
+        publish_project(uri=uri)
+    except SystemExit:
+        print(f"  Warning: publish failed — project has no remote yet.")
+        print(f"  Run manually: karya publish project --uri {uri}")
+
+
+def create_project(uri: str, mode: str = "new", publish: bool = True) -> None:
     """
     mode: "new"     — first-time create; fails if project exists (unless interrupted)
           "continue" — re-run post-create hooks on an interrupted project
           "restart"  — delete and recreate from scratch
+    publish: auto-publish to GitHub after successful setup (skip with --no-publish)
     """
     scheme, path = parse_uri(uri)
     if scheme != "kosh":
@@ -357,6 +372,7 @@ def create_project(uri: str, mode: str = "new") -> None:
             if hooks_ok:
                 set_project_setup_status(project_root, uri, "complete")
                 print(f"Setup of '{project_name}' complete.")
+                _auto_publish(project_root, uri, publish)
             else:
                 print(f"Setup of '{project_name}' incomplete — one or more hooks failed.")
                 print(f"  Fix the issue above, then re-run:")
@@ -438,6 +454,7 @@ def create_project(uri: str, mode: str = "new") -> None:
     if hooks_ok:
         set_project_setup_status(project_root, uri, "complete")
         print(f"Setup of '{project_name}' complete.")
+        _auto_publish(project_root, uri, publish)
     else:
         print(f"Setup of '{project_name}' incomplete — one or more hooks failed.")
         print(f"  Fix the issue above, then re-run:")
@@ -872,6 +889,8 @@ def main() -> None:
                             help="Resume post-create hooks on an interrupted project")
     mode_group.add_argument("--restart", dest="mode", action="store_const", const="restart",
                             help="Delete the project and recreate from scratch")
+    create_project_parser.add_argument("--no-publish", dest="no_publish", action="store_true",
+                            help="Skip publishing to GitHub after setup (use when testing)")
 
     # publish project
     publish_parser = subparsers.add_parser("publish")
@@ -903,7 +922,8 @@ def main() -> None:
     if args.command == "init" and args.entity == "workspace":
         init_workspace()
     elif args.command == "create" and args.entity == "project":
-        create_project(args.uri, mode=getattr(args, "mode", None) or "new")
+        create_project(args.uri, mode=getattr(args, "mode", None) or "new",
+                       publish=not getattr(args, "no_publish", False))
     elif args.command == "publish" and args.entity == "project":
         publish_project(
             getattr(args, "uri", None),
