@@ -13,7 +13,7 @@
     },
     {
       "label": "Lab: done",
-      "detail": "make grade, create work/<lab>/writeup.md, push to personal remote, save done checkpoint",
+      "detail": "make grade, create work/<lab>/writeup.md, push to origin, save done checkpoint",
       "type": "shell",
       "command": "bash scripts/lab-done.sh ${input:labName}",
       "options": { "cwd": "${workspaceFolder}" },

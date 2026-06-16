@@ -56,10 +56,10 @@ WRITEUP
     echo "Created work/$LAB/writeup.md — fill it in while it's fresh"
 fi
 
-# Push lab branch to personal remote
-echo "Pushing $LAB to personal remote..."
+# Push lab branch to origin (your GitHub repo)
+echo "Pushing $LAB to origin..."
 cd "$XV6"
-git push personal "$LAB" 2>&1 || echo "WARNING: push failed — run 'git push personal $LAB' manually when ready."
+git push origin "$LAB" 2>&1 || echo "WARNING: push failed — run 'git push origin $LAB' manually when ready."
 cd "$PROJECT_ROOT"
 
 # Save a done checkpoint

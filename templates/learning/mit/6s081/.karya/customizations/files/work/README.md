@@ -37,7 +37,7 @@ work/
 **Completing a lab** — run VS Code task **"Lab: done"**, pick the lab:
 - Runs `make grade` (fails fast if tests don't pass)
 - Creates `work/<lab>/writeup.md` from a template — fill it in while it's fresh
-- Pushes the lab branch to your personal GitHub mirror
+- Pushes the lab branch to your GitHub repo (origin)
 - Saves a done checkpoint
 
 ## Tips

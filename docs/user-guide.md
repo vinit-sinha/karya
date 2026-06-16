@@ -147,8 +147,8 @@ When you create `kosh://learning/mit/6s081`, karya's built-in hook already knows
 
 **What the hook sets up automatically:**
 - Installs the RISC-V toolchain and QEMU via Homebrew
-- Clones MIT's xv6 lab repo (`git://g.csail.mit.edu/xv6-labs-2021`)
-- Creates a private GitHub mirror and wires it as the `personal` remote
+- Creates (or reuses) a private GitHub repo and mirrors MIT's xv6 lab repo into it
+- Clones from your GitHub repo as `origin`, and adds MIT's repo as a fetch-only `mit-upstream` remote (push blocked)
 - Installs VS Code tasks for booting xv6, running tests, and managing labs
 - Installs `scripts/lab-start.sh` and `scripts/lab-done.sh` for the per-lab workflow
 - Writes `SETUP.md` with the full setup status table and next steps
@@ -200,18 +200,13 @@ karya create project --uri kosh://learning/mit/6s081 --restart
 
 A project already fully set up will refuse a plain `create` and suggest `--restart`.
 
-### GitHub mirror: no duplicates across machines
+### GitHub repo: no duplicates across machines
 
-The first time you set up a project that creates a GitHub mirror, karya stores the mirror URL in `.karya-project` as `github_mirror`. On subsequent runs — whether `--continue`, a new directory on the same machine, or a fresh install on a different machine — karya reads this stored URL and skips all GitHub interaction.
+For templates that need their own GitHub repo (like 6s081's xv6 clone), karya stores the repo URL in `.karya-project` as `github_mirror`. On subsequent runs — whether `--continue`, a new directory on the same machine, or a fresh install on a different machine — karya reads this stored URL and reuses it instead of creating a new repo.
 
-On a truly fresh machine with no stored URL and no matching repo on GitHub, karya prompts once:
-```
-No GitHub mirror found for this project.
-Default: https://github.com/you/learning-mit-6s081 (will be created as private)
-Enter existing mirror URL, or press Enter to create the default:
-```
+On a truly fresh machine with no stored URL, karya checks for an existing repo matching the expected name (e.g. `xv6-labs-2021`) under your GitHub account, and reuses it if found. Only if neither a stored URL nor an existing repo is found does it create a new private repo — mirroring the upstream source repo into it first.
 
-Paste your existing repo URL (e.g. `https://github.com/you/xv6-labs-2021.git`) and you're done — no duplicate repo is ever created.
+Your GitHub repo is always the `origin` remote — read/write, the one you push to. If the template clones from an external upstream (MIT's `git://g.csail.mit.edu/xv6-labs-2021` for 6s081), that upstream is added as a separate fetch-only remote (`mit-upstream`) with push blocked via a `no_push` sentinel, so you never accidentally push to a repo you don't own.
 
 ---
 
