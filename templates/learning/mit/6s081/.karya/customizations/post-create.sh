@@ -49,8 +49,7 @@ WORKSPACE_ROOT="$dir"
 
 echo "[6s081] project root = $PROJECT_ROOT"
 
-# ── Derive repo name from .karya-project URI ─────────────────────────────────
-# kosh://learning/mit/6s081 → learning-mit-6s081
+# ── Read project URI from .karya-project (used in SETUP.md) ──────────────────
 URI=$(python3 -c "
 import json, sys
 try:
@@ -60,16 +59,9 @@ except Exception:
     print('')
 " 2>/dev/null || echo "")
 
-if [[ -n "$URI" ]]; then
-    REPO_NAME=$(echo "$URI" | sed 's|kosh://||' | tr '/' '-')
-else
-    REPO_NAME="learning-mit-6s081"
-fi
-echo "[6s081] GitHub repo name derived from URI: $REPO_NAME"
-
 # ── 1. Toolchain + QEMU ──────────────────────────────────────────────────────
 echo ""
-echo "[6s081] ── Step 1/5: Toolchain + QEMU ──────────────────────────────────"
+echo "[6s081] ── Step 1/6: Toolchain + QEMU ──────────────────────────────────"
 if ! command -v brew &>/dev/null; then
     echo "[6s081] ERROR: Homebrew not found. Install from https://brew.sh then re-run:"
     echo "        karya create project --uri kosh://learning/mit/6s081 --continue"
@@ -94,76 +86,7 @@ QEMU_PATH=$(command -v qemu-system-riscv64)
 echo "[6s081] Toolchain: $TOOLCHAIN_PATH"
 echo "[6s081] QEMU:      $QEMU_PATH"
 
-# ── 2. Clone xv6 lab repo ────────────────────────────────────────────────────
-echo ""
-echo "[6s081] ── Step 2/5: Clone xv6-labs-2021 ───────────────────────────────"
-# Directory layout:
-#   starter-code/xv6-labs-2021/   ← MIT clone (one branch per lab)
-#     origin   → git://g.csail.mit.edu/xv6-labs-2021  (MIT, read-only)
-#     personal → https://github.com/<user>/<repo>      (your private mirror, HTTPS)
-#
-# You work directly on lab branches — MIT convention.
-# All git operations against the personal remote use gh's HTTPS token; no SSH needed.
-
-# Accept xv6-riscv as a legacy directory name and normalise to xv6-labs-2021
-STARTER="$PROJECT_ROOT/starter-code/xv6-labs-2021"
-STARTER_LEGACY="$PROJECT_ROOT/starter-code/xv6-riscv"
-if [[ ! -d "$STARTER/.git" && -d "$STARTER_LEGACY/.git" ]]; then
-    echo "[6s081] Renaming starter-code/xv6-riscv → starter-code/xv6-labs-2021 ..."
-    mv "$STARTER_LEGACY" "$STARTER"
-fi
-
-if [[ ! -d "$STARTER/.git" ]]; then
-    echo "[6s081] Cloning xv6-labs-2021 from MIT..."
-    git clone git://g.csail.mit.edu/xv6-labs-2021 "$STARTER" || {
-        echo "[6s081] ERROR: clone failed. Ensure network access to g.csail.mit.edu"
-        echo "        Re-run: karya create project --uri kosh://learning/mit/6s081 --continue"
-        exit 1
-    }
-else
-    echo "[6s081] xv6-labs-2021 present at $STARTER"
-fi
-
-# MIT's remote HEAD is unset — ensure util is checked out as a local branch
-# so that git push --all has at least one ref to push.
-cd "$STARTER"
-if ! git show-ref --verify --quiet refs/remotes/origin/util && \
-   ! git show-ref --verify --quiet refs/heads/util; then
-    echo "[6s081] ERROR: 'util' branch not found — clone may be incomplete."
-    exit 1
-fi
-# git branch --show-current returns empty string in detached HEAD state
-CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
-if [[ -z "$CURRENT_BRANCH" ]]; then
-    git checkout util      # creates local tracking branch from origin/util
-    echo "[6s081] Checked out branch: util (lab 0 — start here)"
-else
-    echo "[6s081] Current branch: $CURRENT_BRANCH"
-fi
-
-# Patch Makefile for newer GCC compatibility.
-# xv6-labs-2021 was written for GCC 10; newer toolchains add -Winfinite-recursion
-# which flags sh.c's intentional tail-calls as errors (-Werror turns them fatal).
-MAKEFILE="$STARTER/Makefile"
-if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=infinite-recursion" "$MAKEFILE"; then
-    # Insert after the first CFLAGS := line
-    sed -i.bak 's/\(CFLAGS :=.*\)/\1\nCFLAGS += -Wno-error=infinite-recursion/' "$MAKEFILE"
-    rm -f "$MAKEFILE.bak"
-    echo "[6s081] Patched Makefile: added -Wno-error=infinite-recursion (GCC compat)"
-else
-    echo "[6s081] Makefile already patched."
-fi
-cd "$PROJECT_ROOT"
-
-# ── 3. GitHub private mirror ─────────────────────────────────────────────────
-echo ""
-echo "[6s081] ── Step 3/5: GitHub private mirror ─────────────────────────────"
-PERSONAL_REMOTE_URL="(not configured)"
-
-# Helper: normalise git remote URL to HTTPS
-normalise_to_https() {
-    echo "$1" | sed 's|^git@github\.com:\(.*\)$|https://github.com/\1|'
-}
+# ── helpers ──────────────────────────────────────────────────────────────────
 
 # Helper: read a field from .karya-project JSON
 read_marker_field() {
@@ -189,101 +112,129 @@ except Exception:
     d = {}
 d['$key'] = '$value'
 json.dump(d, open(path, 'w'), indent=2)
-print('')
 " 2>/dev/null || true
 }
 
+# ── 2. GitHub repo + xv6 clone ───────────────────────────────────────────────
+echo ""
+echo "[6s081] ── Step 2/6: GitHub repo + xv6 clone ───────────────────────────"
+# Remote layout:
+#   origin       → https://github.com/<user>/xv6-labs-2021  (your repo, read/write)
+#   mit-upstream → git://g.csail.mit.edu/xv6-labs-2021       (MIT, fetch-only)
+#
+# Your GitHub repo is the canonical origin. MIT's repo is upstream-only.
+# push is blocked on mit-upstream via 'no_push' sentinel.
+
+STARTER="$PROJECT_ROOT/starter-code/xv6-labs-2021"
+STARTER_LEGACY="$PROJECT_ROOT/starter-code/xv6-riscv"
+GITHUB_REPO_URL="(not configured)"
+
+# Normalise legacy directory name
+if [[ ! -d "$STARTER/.git" && -d "$STARTER_LEGACY/.git" ]]; then
+    echo "[6s081] Renaming starter-code/xv6-riscv → starter-code/xv6-labs-2021 ..."
+    mv "$STARTER_LEGACY" "$STARTER"
+fi
+
 if ! command -v gh &>/dev/null; then
-    echo "[6s081] WARNING: gh CLI not found — skipping GitHub mirror."
+    echo "[6s081] WARNING: gh CLI not found — skipping GitHub setup."
     echo "        Install: brew install gh && gh auth login, then re-run with --continue"
+elif [[ -z "$(gh api user --jq '.login' 2>/dev/null)" ]]; then
+    echo "[6s081] WARNING: not authenticated with gh. Run: gh auth login, then re-run with --continue"
 else
-    GITHUB_USER=$(gh api user --jq '.login' 2>/dev/null || echo "")
-    if [[ -z "$GITHUB_USER" ]]; then
-        echo "[6s081] WARNING: not authenticated with gh."
-        echo "        Run: gh auth login, then re-run with --continue"
+    GITHUB_USER=$(gh api user --jq '.login')
+    gh auth setup-git 2>/dev/null || true
+
+    # ── Determine GitHub repo URL (stored → existing → create) ───────────────
+    STORED_MIRROR=$(read_marker_field "github_mirror")
+
+    if [[ -n "$STORED_MIRROR" ]]; then
+        echo "[6s081] Using stored GitHub repo: $STORED_MIRROR"
+        GITHUB_REPO_URL="$STORED_MIRROR"
     else
-        # Wire gh as the HTTPS credential helper so no SSH keys are needed
-        gh auth setup-git 2>/dev/null || true
+        # Derive repo name: kosh://learning/mit/6s081 → xv6-labs-2021 (use standard name)
+        GITHUB_REPO="$GITHUB_USER/xv6-labs-2021"
+        GITHUB_REPO_URL="https://github.com/$GITHUB_REPO.git"
 
-        # ── Priority 1: use URL already stored in .karya-project (idempotent across re-runs)
-        STORED_MIRROR=$(read_marker_field "github_mirror")
-        cd "$STARTER"
-        EXISTING_REMOTE=$(git remote get-url personal 2>/dev/null || echo "")
-
-        if [[ -n "$STORED_MIRROR" ]]; then
-            # Already set up on a previous run — just make sure the local remote matches
-            echo "[6s081] Using stored mirror: $STORED_MIRROR"
-            if [[ -z "$EXISTING_REMOTE" ]]; then
-                git remote add personal "$STORED_MIRROR"
-                echo "[6s081] Added personal remote → $STORED_MIRROR"
-            elif [[ "$(normalise_to_https "$EXISTING_REMOTE")" != "$STORED_MIRROR" ]]; then
-                git remote set-url personal "$STORED_MIRROR"
-                echo "[6s081] Updated personal remote → $STORED_MIRROR"
-            fi
-            PERSONAL_REMOTE_URL="$STORED_MIRROR"
-
-        elif [[ -n "$EXISTING_REMOTE" ]]; then
-            # ── Priority 2: personal remote already in clone — normalise and store it
-            HTTPS_REMOTE=$(normalise_to_https "$EXISTING_REMOTE")
-            echo "[6s081] Found existing personal remote: $EXISTING_REMOTE"
-            if [[ "$EXISTING_REMOTE" != "$HTTPS_REMOTE" ]]; then
-                git remote set-url personal "$HTTPS_REMOTE"
-                echo "[6s081] Converted SSH → HTTPS: $HTTPS_REMOTE"
-            fi
-            PERSONAL_REMOTE_URL="$HTTPS_REMOTE"
-            cd "$PROJECT_ROOT"
-            write_marker_field "github_mirror" "$PERSONAL_REMOTE_URL"
-            cd "$STARTER"
-
+        if gh repo view "$GITHUB_REPO" &>/dev/null 2>&1; then
+            echo "[6s081] Found existing GitHub repo: https://github.com/$GITHUB_REPO"
         else
-            # ── Priority 3: nothing known — check derived name, then ask user
-            cd "$PROJECT_ROOT"
-            DEFAULT_REPO="$GITHUB_USER/$REPO_NAME"
-            DEFAULT_URL="https://github.com/$DEFAULT_REPO.git"
-
-            if gh repo view "$DEFAULT_REPO" &>/dev/null 2>&1; then
-                # Derived repo exists — use it without prompting
-                echo "[6s081] Found existing GitHub repo: https://github.com/$DEFAULT_REPO"
-                PERSONAL_REMOTE_URL="$DEFAULT_URL"
-            else
-                # Unknown — prompt once, store forever
-                echo ""
-                echo "[6s081] No GitHub mirror found for this project."
-                echo "        Default: https://github.com/$DEFAULT_REPO (will be created as private)"
-                echo -n "        Enter existing mirror URL, or press Enter to create the default: "
-                if [[ -t 0 ]]; then
-                    read -r USER_INPUT </dev/tty
-                else
-                    USER_INPUT=""
-                    echo "(non-interactive — using default)"
-                fi
-                if [[ -n "$USER_INPUT" ]]; then
-                    PERSONAL_REMOTE_URL=$(normalise_to_https "$USER_INPUT")
-                    echo "[6s081] Using provided mirror: $PERSONAL_REMOTE_URL"
-                else
-                    echo "[6s081] Creating private GitHub repo: https://github.com/$DEFAULT_REPO ..."
-                    gh repo create "$DEFAULT_REPO" --private \
-                        --description "MIT 6.S081 OS Engineering — personal lab repo"
-                    PERSONAL_REMOTE_URL="$DEFAULT_URL"
-                fi
-            fi
-
-            write_marker_field "github_mirror" "$PERSONAL_REMOTE_URL"
-            cd "$STARTER"
-            git remote add personal "$PERSONAL_REMOTE_URL"
-            echo "[6s081] Added remote 'personal' → $PERSONAL_REMOTE_URL"
+            echo "[6s081] Creating private GitHub repo: https://github.com/$GITHUB_REPO ..."
+            gh repo create "$GITHUB_REPO" --private \
+                --description "MIT 6.S081 OS Engineering — personal lab repo" || {
+                echo "[6s081] ERROR: failed to create GitHub repo. Re-run with --continue after fixing."
+                exit 1
+            }
+            echo "[6s081] Mirroring MIT xv6 → https://github.com/$GITHUB_REPO ..."
+            MIRROR_TMP=$(mktemp -d)
+            git clone --mirror git://g.csail.mit.edu/xv6-labs-2021 "$MIRROR_TMP/xv6.git" || {
+                echo "[6s081] ERROR: mirror clone from MIT failed. Check network access to g.csail.mit.edu"
+                rm -rf "$MIRROR_TMP"
+                exit 1
+            }
+            git -C "$MIRROR_TMP/xv6.git" push --mirror "$GITHUB_REPO_URL" || {
+                echo "[6s081] ERROR: mirror push to GitHub failed."
+                rm -rf "$MIRROR_TMP"
+                exit 1
+            }
+            rm -rf "$MIRROR_TMP"
+            echo "[6s081] Mirror complete."
         fi
-
-        echo "[6s081] Pushing all lab branches to personal remote..."
-        git push personal --all 2>&1 \
-            || echo "[6s081] WARNING: push incomplete — re-run with --continue when network is available."
-        cd "$PROJECT_ROOT"
+        write_marker_field "github_mirror" "$GITHUB_REPO_URL"
     fi
+
+    # ── Clone from YOUR GitHub (or verify existing clone) ────────────────────
+    if [[ ! -d "$STARTER/.git" ]]; then
+        echo "[6s081] Cloning xv6-labs-2021 from your GitHub..."
+        git clone "$GITHUB_REPO_URL" "$STARTER" || {
+            echo "[6s081] ERROR: clone failed. Re-run with --continue when network is available."
+            exit 1
+        }
+    else
+        echo "[6s081] xv6-labs-2021 already present at $STARTER"
+        # Ensure origin points to your GitHub (not MIT or legacy personal remote)
+        CURRENT_ORIGIN=$(git -C "$STARTER" remote get-url origin 2>/dev/null || echo "")
+        if [[ "$CURRENT_ORIGIN" != "$GITHUB_REPO_URL" ]]; then
+            git -C "$STARTER" remote set-url origin "$GITHUB_REPO_URL" 2>/dev/null || \
+            git -C "$STARTER" remote add origin "$GITHUB_REPO_URL"
+            echo "[6s081] Updated origin → $GITHUB_REPO_URL"
+        fi
+        # Remove legacy 'personal' remote if present
+        git -C "$STARTER" remote remove personal 2>/dev/null && \
+            echo "[6s081] Removed legacy 'personal' remote (now origin)" || true
+    fi
+
+    # ── Add MIT as fetch-only upstream (push blocked) ─────────────────────────
+    cd "$STARTER"
+    MIT_URL="git://g.csail.mit.edu/xv6-labs-2021"
+    if ! git remote get-url mit-upstream &>/dev/null; then
+        git remote add mit-upstream "$MIT_URL"
+        git remote set-url --push mit-upstream no_push
+        echo "[6s081] Added mit-upstream (fetch-only, push blocked)"
+    fi
+
+    # ── Checkout util (lab 0) ─────────────────────────────────────────────────
+    git checkout -b util --track origin/util 2>/dev/null || git checkout util
+    echo "[6s081] xv6 on branch: util (lab 0 — start here)"
+    cd "$PROJECT_ROOT"
+fi
+
+# ── 3. Patch Makefile for newer GCC ──────────────────────────────────────────
+echo ""
+echo "[6s081] ── Step 3/6: Patch Makefile ────────────────────────────────────"
+# xv6-labs-2021 was written for GCC 10; newer toolchains treat sh.c tail-calls
+# as infinite recursion errors (-Werror turns -Winfinite-recursion fatal).
+MAKEFILE="$STARTER/Makefile"
+if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=infinite-recursion" "$MAKEFILE"; then
+    sed -i.bak 's/\(CFLAGS :=.*\)/\1\nCFLAGS += -Wno-error=infinite-recursion/' "$MAKEFILE"
+    rm -f "$MAKEFILE.bak"
+    echo "[6s081] Patched Makefile: added -Wno-error=infinite-recursion"
+else
+    echo "[6s081] Makefile already patched."
 fi
 
 # ── 4. Install VS Code tasks, scripts, and work docs ─────────────────────────
 echo ""
-echo "[6s081] ── Step 4/5: Install VS Code tasks + scripts ───────────────────"
+echo "[6s081] ── Step 4/6: Install VS Code tasks + scripts ───────────────────"
 mkdir -p "$PROJECT_ROOT/.vscode" "$PROJECT_ROOT/scripts"
 
 if [[ -f "$FILES_DIR/.vscode/tasks.json" ]]; then
@@ -318,7 +269,7 @@ fi
 
 # ── 5. Write SETUP.md ────────────────────────────────────────────────────────
 echo ""
-echo "[6s081] ── Step 5/5: Writing SETUP.md ──────────────────────────────────"
+echo "[6s081] ── Step 6/6: Writing SETUP.md ──────────────────────────────────"
 cat > "$SETUP_MD" <<SETUP
 # 6.S081 — Setup Status
 
@@ -333,7 +284,8 @@ cat > "$SETUP_MD" <<SETUP
 | RISC-V toolchain | $(command -v riscv64-unknown-elf-gcc &>/dev/null && echo "✓ installed" || echo "✗ missing") | $(command -v riscv64-unknown-elf-gcc 2>/dev/null || echo "run setup again") |
 | QEMU | $(command -v qemu-system-riscv64 &>/dev/null && echo "✓ installed" || echo "✗ missing") | $(command -v qemu-system-riscv64 2>/dev/null || echo "run setup again") |
 | xv6 source | ✓ cloned | \`starter-code/xv6-labs-2021/\` (on branch \`$(git -C "$STARTER" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")\`) |
-| GitHub mirror | $([ "$PERSONAL_REMOTE_URL" != "(not configured)" ] && echo "✓ configured" || echo "✗ not configured") | $PERSONAL_REMOTE_URL |
+| GitHub repo (origin) | $([ "$GITHUB_REPO_URL" != "(not configured)" ] && echo "✓ configured" || echo "✗ not configured") | $GITHUB_REPO_URL |
+| MIT upstream (fetch-only) | ✓ configured | \`git://g.csail.mit.edu/xv6-labs-2021\` |
 | VS Code tasks | ✓ installed | \`.vscode/tasks.json\` |
 | Lab scripts | ✓ installed | \`scripts/lab-start.sh\`, \`scripts/lab-done.sh\` |
 
@@ -379,7 +331,7 @@ learning/mit/6s081/
 │   └── lab-done.sh               ← called by "Lab: done" task
 ├── starter-code/
 │   └── xv6-labs-2021/            ← MIT xv6 kernel (one branch per lab)
-│       ├── remotes: origin (MIT, read-only), personal (your GitHub mirror)
+│       ├── remotes: origin (your GitHub, read/write), mit-upstream (MIT, fetch-only)
 │       └── [util, syscall, pagetable, traps, cow, thread, net, lock, fs, mmap]
 ├── study_materials/              ← lecture slides, PDFs, reference docs
 └── work/

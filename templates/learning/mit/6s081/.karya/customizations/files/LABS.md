@@ -34,7 +34,7 @@ Update the Status column as you work. Use VS Code tasks for all lab operations.
 7. **"Lab: done"** → pick the lab
    - Runs `make grade` (fails if tests don't pass)
    - Creates `work/<lab>/writeup.md`
-   - Pushes the lab branch to your personal GitHub mirror
+   - Pushes the lab branch to your GitHub repo (origin)
    - Saves a done checkpoint
 8. Mark lab as done in the table above
 
