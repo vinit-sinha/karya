@@ -100,96 +100,226 @@
 // ── Course data (MIT Fall 2021, linearised) ────────────────────────────────
 // Each entry is a classwork session. Homework and lab-due events are interleaved
 // by week index relative to the session they belong to.
+const MIT = 'https://pdos.csail.mit.edu/6.S081/2021/';
+const BOOK = MIT + 'xv6/book-riscv-rev2.pdf';
+
+// readings: array of { label, href } or plain string for non-linked items
 const SESSIONS = [
   { type:'lec', n:1,  topic:'Introduction and examples',
-    readings:'Chapter 1',
+    video:'https://youtu.be/L6YqHxYHa7A',
+    slides: MIT + 'slides/6s081-lec-intro.pdf',
+    readings:[
+      { label:'xv6 book Ch.1', href:BOOK },
+      { label:'Overview notes (2020)', href: MIT + 'lec/l-overview.txt' },
+    ],
     hw:'Homework 1',
     labAssign:{ name:'util', href:'labs/util.html' } },
+
   { type:'lec', n:2,  topic:'C and gdb',
-    readings:'K&R 2.9, 5.1–5.6, 6.4' },
+    slides: MIT + 'lec/6S081-Intro-to-C-Fa21.pdf',
+    readings:[
+      { label:'K&amp;R §2.9, 5.1–5.6, 6.4', href:null },
+      { label:'GDB slides', href: MIT + 'lec/gdb_slides.pdf' },
+    ] },
+
   { type:'lec', n:3,  topic:'OS organization and system calls',
-    readings:'Chapter 2, kernel/proc.h, kernel/defs.h, kernel/entry.S, kernel/main.c, user/initcode.S, user/init.c',
+    video:'https://youtu.be/o44d---Dk4o',
+    slides: MIT + 'slides/6s081-lec-osorg.pdf',
+    readings:[
+      { label:'xv6 book Ch.2', href:BOOK },
+      { label:'kernel/proc.h', href:null }, { label:'kernel/defs.h', href:null },
+      { label:'kernel/entry.S', href:null }, { label:'kernel/main.c', href:null },
+      { label:'user/initcode.S', href:null }, { label:'user/init.c', href:null },
+    ],
     hw:'Homework 2',
     labAssign:{ name:'syscall', href:'labs/syscall.html' },
     labDue:{ name:'util', href:'labs/util.html' } },
+
   { type:'lec', n:4,  topic:'Page tables',
-    readings:'Chapter 3, kernel/memlayout.h, kernel/vm.c, kernel/kalloc.c, kernel/riscv.h',
+    video:'https://youtu.be/f1Hpjty3TT8',
+    slides: MIT + 'slides/6s081-lec-vm.pdf',
+    readings:[
+      { label:'xv6 book Ch.3', href:BOOK },
+      { label:'kernel/memlayout.h', href:null }, { label:'kernel/vm.c', href:null },
+      { label:'kernel/kalloc.c', href:null }, { label:'kernel/riscv.h', href:null },
+    ],
     hw:'Homework 3' },
+
   { type:'lec', n:5,  topic:'GDB, calling conventions and stack frames (RISC-V)',
-    readings:'Calling Convention',
+    video:'https://youtu.be/s-Z5t_yTyTM',
+    slides: MIT + 'lec/gdb_slides.pdf',
+    readings:[
+      { label:'RISC-V calling convention', href: MIT + 'readings/riscv-calling.pdf' },
+    ],
     labAssign:{ name:'pgtbl', href:'labs/pgtbl.html' },
     labDue:{ name:'syscall', href:'labs/syscall.html' } },
+
   { type:'lec', n:6,  topic:'Isolation &amp; system call entry/exit',
-    readings:'Chapter 4, kernel/riscv.h, kernel/trampoline.S, kernel/trap.c',
+    video:'https://youtu.be/T26UuauaxWA',
+    slides: MIT + 'slides/6s081-lec-syscall.pdf',
+    readings:[
+      { label:'xv6 book Ch.4', href:BOOK },
+      { label:'kernel/riscv.h', href:null }, { label:'kernel/trampoline.S', href:null },
+      { label:'kernel/trap.c', href:null },
+    ],
     hw:'Homework 4' },
+
   { type:'lec', n:7,  topic:'Page faults',
-    readings:'Section 4.6',
+    video:'https://youtu.be/KSYO-gTZo0A',
+    slides: MIT + 'slides/6s081-lec-usingvm.pdf',
+    readings:[
+      { label:'xv6 book §4.6', href:BOOK },
+    ],
     hw:'Homework 5',
     labAssign:{ name:'traps', href:'labs/traps.html' },
     labDue:{ name:'pgtbl', href:'labs/pgtbl.html' } },
+
   { type:'lec', n:8,  topic:'Q&amp;A labs',
+    slides: MIT + 'slides/6s081-lec-qa1.pdf',
+    readings:[],
     hw:'Homework 6' },
+
   { type:'lec', n:9,  topic:'Interrupts',
-    readings:'Chapter 5, kernel/trap.c, kernel/plic.c, kernel/console.c, kernel/uart.c, kernel/printf.c',
+    video:'https://youtu.be/zRnGNndcVEA',
+    slides: MIT + 'slides/6s081-lec-interrupts.pdf',
+    readings:[
+      { label:'xv6 book Ch.5', href:BOOK },
+      { label:'kernel/plic.c', href:null }, { label:'kernel/console.c', href:null },
+      { label:'kernel/uart.c', href:null }, { label:'kernel/printf.c', href:null },
+    ],
     hw:'Homework 7',
     labAssign:{ name:'cow', href:'labs/cow.html' },
     labDue:{ name:'traps', href:'labs/traps.html' } },
+
   { type:'lec', n:10, topic:'Multiprocessors and locking',
-    readings:'Locking section, kernel/spinlock.h, kernel/spinlock.c',
+    video:'https://youtu.be/NGXu3vN7yAk',
+    slides: MIT + 'slides/6s081-lec-locks.pdf',
+    readings:[
+      { label:'xv6 book: Locking', href:BOOK },
+      { label:'kernel/spinlock.h', href:null }, { label:'kernel/spinlock.c', href:null },
+    ],
     hw:'Homework 8' },
+
   { type:'lec', n:11, topic:'Scheduling 1',
-    readings:'Scheduling section, kernel/proc.c, kernel/swtch.S',
+    video:'https://youtu.be/vsgrTHY5tkg',
+    slides: MIT + 'slides/6s081-lec-threads.pdf',
+    readings:[
+      { label:'xv6 book §7.1–7.4', href:BOOK },
+      { label:'kernel/proc.c', href:null }, { label:'kernel/swtch.S', href:null },
+    ],
     hw:'Homework 9' },
+
   { type:'lec', n:12, topic:'Scheduling 2',
-    readings:'Remainder of Scheduling section',
+    video:'https://youtu.be/gP67sJ4PTnc',
+    slides: MIT + 'slides/6s081-lec-threads2.pdf',
+    readings:[
+      { label:'xv6 book: Scheduling (cont.)', href:BOOK },
+      { label:'kernel/proc.c', href:null }, { label:'kernel/sleeplock.c', href:null },
+    ],
     hw:'Homework 10',
     labAssign:{ name:'thread', href:'labs/thread.html' },
     labDue:{ name:'cow', href:'labs/cow.html' } },
+
   { type:'lec', n:13, topic:'Q&amp;A labs',
+    slides: MIT + 'slides/6s081-lec-qa2.pdf',
+    readings:[],
     hw:'Homework 11' },
+
   { type:'lec', n:14, topic:'File systems',
-    readings:'kernel/bio.c, kernel/fs.c, kernel/sysfile.c, kernel/file.c, Logging section',
+    video:'https://youtu.be/ADzLv1nRtR8',
+    readings:[
+      { label:'xv6 book: File system', href:BOOK },
+      { label:'kernel/bio.c', href:null }, { label:'kernel/fs.c', href:null },
+      { label:'kernel/sysfile.c', href:null }, { label:'kernel/file.c', href:null },
+    ],
     hw:'Homework 12',
     labAssign:{ name:'net', href:'labs/net.html' },
     labDue:{ name:'thread', href:'labs/thread.html' } },
+
   { type:'lec', n:15, topic:'Crash recovery',
-    readings:'kernel/log.c, Logging section',
+    video:'https://youtu.be/7Hk2dIorDkk',
+    readings:[
+      { label:'xv6 book: Logging', href:BOOK },
+      { label:'kernel/log.c', href:null },
+    ],
     hw:'Homework 13' },
+
   { type:'lec', n:16, topic:'File system performance and fast crash recovery',
-    readings:'Journaling the Linux ext2fs Filesystem',
+    video:'https://youtu.be/CmDcf6rjFb4',
+    readings:[
+      { label:'Journaling the Linux ext2fs Filesystem', href: MIT + 'readings/journal-ext2fs.html' },
+    ],
     hw:'Homework 14' },
+
   { type:'lec', n:17, topic:'Virtual memory for applications',
-    readings:'Virtual Memory Primitives for User Programs',
+    video:'https://youtu.be/YNQghIvk0jc',
+    readings:[
+      { label:'Virtual Memory Primitives for User Programs', href: MIT + 'readings/appel-li.pdf' },
+    ],
     hw:'Homework 15' },
+
   { type:'lec', n:18, topic:'OS Organization',
-    readings:'The Performance of micro-Kernel-Based Systems',
+    video:'https://youtu.be/dM9PLdaTpnA',
+    readings:[
+      { label:'The Performance of µ-Kernel-Based Systems', href: MIT + 'readings/microkernel.pdf' },
+    ],
     hw:'Homework 16',
     labAssign:{ name:'lock', href:'labs/lock.html' },
     labDue:{ name:'net', href:'labs/net.html' } },
+
   { type:'lec', n:19, topic:'Virtual Machines',
-    readings:'Dune: Safe User-level Access to Privileged CPU Features',
+    video:'https://youtu.be/R8obXHAIPY0',
+    readings:[
+      { label:'Dune: Safe User-level Access to Privileged CPU Features', href: MIT + 'readings/belay-dune.pdf' },
+    ],
     hw:'Homework 17' },
+
   { type:'lec', n:20, topic:'Kernels and HLL',
-    readings:'Biscuit paper and FAQ',
+    video:'https://youtu.be/AAtXWGwxI9k',
+    readings:[
+      { label:'Biscuit paper', href: MIT + 'readings/biscuit.pdf' },
+      { label:'FAQ', href: MIT + 'lec/faq-biscuit.txt' },
+    ],
     hw:'Homework 18',
     labAssign:{ name:'fs', href:'labs/fs.html' },
     labDue:{ name:'lock', href:'labs/lock.html' } },
+
   { type:'lec', n:21, topic:'Networking',
-    readings:'Receive Livelock',
+    video:'https://youtu.be/Fcjychg4Tvk',
+    readings:[
+      { label:'Receive Livelock', href: MIT + 'readings/mogul96usenix.pdf' },
+    ],
     hw:'Homework 19' },
+
   { type:'special', topic:'Hacking day',
+    readings:[],
     labDue:{ name:'fs', href:'labs/fs.html' },
     labAssign:{ name:'mmap', href:'labs/mmap.html' } },
+
   { type:'lec', n:22, topic:'Meltdown',
-    readings:'Meltdown paper',
+    video:'https://youtu.be/WpKVr3p5rjE',
+    readings:[
+      { label:'Meltdown paper', href: MIT + 'readings/meltdown.pdf' },
+    ],
     hw:'Homework 20' },
+
   { type:'lec', n:23, topic:'Multi-Core scalability and RCU',
-    readings:'RCU paper and FAQ',
+    video:'https://youtu.be/KUwyCGMTeq8',
+    readings:[
+      { label:'RCU: A Decade of Use', href: MIT + 'readings/rcu-decade-later.pdf' },
+      { label:'RCU FAQ', href: MIT + 'lec/rcu-faq.txt' },
+    ],
     hw:'Homework 21' },
+
   { type:'lec', n:24, topic:'Current Research: Radiation Tolerance',
-    readings:'NASA CALIPSO paper',
+    slides: MIT + 'lec/CelSkeggsRadiationTolerance.pdf',
+    readings:[
+      { label:'NASA CALIPSO paper', href: MIT + 'readings/nasa-calipso-radiation.pdf' },
+    ],
     hw:'Homework 22' },
+
   { type:'lec', n:25, topic:'Q&amp;A',
+    readings:[],
     hw:'Homework 23',
     labDue:{ name:'mmap', href:'labs/mmap.html' } },
 ];
@@ -327,19 +457,35 @@ async function generateSchedule() {
 
     if (row.rowType === 'classwork') {
       tr.className = 'classwork-row';
+
+      // Badge + links (video, slides) in the Type column
       let badge = '';
-      if (s.type === 'lec') badge = `<span class="badge badge-lec">LEC ${s.n}</span>`;
-      else if (s.type === 'special') badge = `<span class="badge badge-read">&#9733;</span>`;
+      if (s.type === 'lec') {
+        let links = [];
+        if (s.video)  links.push(`<a href="${s.video}" target="_blank" title="Video lecture">▶</a>`);
+        if (s.slides) links.push(`<a href="${s.slides}" target="_blank" title="Slides">⧉</a>`);
+        const extras = links.length ? ` <span style="font-size:0.8rem">${links.join(' ')}</span>` : '';
+        badge = `<span class="badge badge-lec">LEC ${s.n}</span>${extras}`;
+      } else if (s.type === 'special') {
+        badge = `<span class="badge badge-read">★</span>`;
+      }
+
+      // Readings column — linked items as chips, plain text otherwise
+      const readingLinks = (s.readings || []).map(r =>
+        r.href
+          ? `<a href="${r.href}" target="_blank" style="display:inline-block;margin:1px 3px 1px 0;font-size:0.78rem;color:#0366d6">${r.label}</a>`
+          : `<span style="display:inline-block;margin:1px 3px 1px 0;font-size:0.78rem;color:#666">${r.label}</span>`
+      ).join('');
 
       let dueCell = '';
-      if (s.labDue) dueCell = `<span class="badge badge-due">Lab: <a href="${s.labDue.href}">${s.labDue.name}</a> due</span>`;
-      if (s.labAssign) dueCell += (dueCell?' ':'') + `<span class="badge badge-lab">Start: <a href="${s.labAssign.href}">${s.labAssign.name}</a></span>`;
+      if (s.labDue)    dueCell  = `<span class="badge badge-due">Lab: <a href="${s.labDue.href}">${s.labDue.name}</a> due</span>`;
+      if (s.labAssign) dueCell += (dueCell ? ' ' : '') + `<span class="badge badge-lab">Start: <a href="${s.labAssign.href}">${s.labAssign.name}</a></span>`;
 
       tr.innerHTML = `
         <td>${fmtDate(row.date)}</td>
-        <td>${badge}</td>
+        <td style="white-space:nowrap">${badge}</td>
         <td>${s.topic}</td>
-        <td style="color:#555;font-size:0.82rem">${s.readings || ''}</td>
+        <td>${readingLinks}</td>
         <td>${dueCell}</td>`;
     } else {
       tr.className = 'homework-row';
