@@ -224,21 +224,26 @@ echo "[6s081] ── Step 3/6: Patch Makefile ───────────�
 # xv6-labs-2021 was written for GCC 10; newer toolchains treat sh.c tail-calls
 # as infinite recursion errors (-Werror turns -Winfinite-recursion fatal).
 MAKEFILE="$STARTER/Makefile"
-if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=infinite-recursion" "$MAKEFILE"; then
+if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=incompatible-pointer-types" "$MAKEFILE"; then
     python3 - "$MAKEFILE" <<'PYEOF'
 import sys
 path = sys.argv[1]
+flags = [
+    'CFLAGS += -Wno-error=infinite-recursion\n',
+    'CFLAGS += -Wno-error=incompatible-pointer-types\n',
+]
 with open(path) as f:
     lines = f.readlines()
-out = []
+lines = [l for l in lines if not any(f.strip() in l for f in flags)]
+out = []; inserted = False
 for line in lines:
     out.append(line)
-    if line.startswith('CFLAGS :=') and not any('Wno-error=infinite-recursion' in l for l in lines):
-        out.append('CFLAGS += -Wno-error=infinite-recursion\n')
+    if not inserted and line.startswith('CFLAGS ='):
+        out.extend(flags); inserted = True
 with open(path, 'w') as f:
     f.writelines(out)
 PYEOF
-    echo "[6s081] Patched Makefile: added -Wno-error=infinite-recursion"
+    echo "[6s081] Patched Makefile: added GCC compat flags"
 else
     echo "[6s081] Makefile already patched."
 fi
