@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schedule — 6.S081</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script src="nav.js"></script>
+<script>renderNav('schedule')</script>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>Schedule</h1>
+    <p class="subtitle">Personalised study plan for 6.S081</p>
+  </div>
+
+  <!-- ── Setup card ── -->
+  <div class="setup-card" id="setup-card">
+    <h2 style="margin-top:0;border:none">Your study preferences</h2>
+    <p style="color:#555;font-size:0.9rem;margin-bottom:0.5em">
+      Tell us when you're starting and which days you'll study.
+      This generates a personalised schedule mapping MIT's course content to your calendar.
+    </p>
+
+    <div class="form-group">
+      <label for="start-date">When do you plan to start?</label>
+      <input type="date" id="start-date">
+    </div>
+
+    <div class="form-group">
+      <label>Which days are your <strong>classwork</strong> days?
+        <span style="font-weight:400;color:#666">(lectures, labs — pick 2)</span></label>
+      <div class="day-checkboxes" id="classwork-days">
+        <input class="day-cb" type="checkbox" id="cw-mon" value="1"><label class="day-label" for="cw-mon">Mon</label>
+        <input class="day-cb" type="checkbox" id="cw-tue" value="2"><label class="day-label" for="cw-tue">Tue</label>
+        <input class="day-cb" type="checkbox" id="cw-wed" value="3"><label class="day-label" for="cw-wed">Wed</label>
+        <input class="day-cb" type="checkbox" id="cw-thu" value="4"><label class="day-label" for="cw-thu">Thu</label>
+        <input class="day-cb" type="checkbox" id="cw-fri" value="5"><label class="day-label" for="cw-fri">Fri</label>
+        <input class="day-cb" type="checkbox" id="cw-sat" value="6"><label class="day-label" for="cw-sat">Sat</label>
+        <input class="day-cb" type="checkbox" id="cw-sun" value="0"><label class="day-label" for="cw-sun">Sun</label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Which days are your <strong>homework</strong> days?
+        <span style="font-weight:400;color:#666">(readings, exercises — pick 1 or more)</span></label>
+      <div class="day-checkboxes" id="homework-days">
+        <input class="day-cb hw-cb" type="checkbox" id="hw-mon" value="1"><label class="day-label" for="hw-mon">Mon</label>
+        <input class="day-cb hw-cb" type="checkbox" id="hw-tue" value="2"><label class="day-label" for="hw-tue">Tue</label>
+        <input class="day-cb hw-cb" type="checkbox" id="hw-wed" value="3"><label class="day-label" for="hw-wed">Wed</label>
+        <input class="day-cb hw-cb" type="checkbox" id="hw-thu" value="4"><label class="day-label" for="hw-thu">Thu</label>
+        <input class="day-cb hw-cb" type="checkbox" id="hw-fri" value="5"><label class="day-label" for="hw-fri">Fri</label>
+        <input class="day-cb hw-cb" type="checkbox" id="hw-sat" value="6"><label class="day-label" for="hw-sat">Sat</label>
+        <input class="day-cb hw-cb" type="checkbox" id="hw-sun" value="0"><label class="day-label" for="hw-sun">Sun</label>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.6rem;align-items:center;margin-top:1rem">
+      <button class="btn btn-primary" onclick="generateSchedule()">Generate my schedule</button>
+      <span id="setup-error" style="color:#c0392b;font-size:0.85rem"></span>
+    </div>
+  </div>
+
+  <!-- ── Change prefs link (shown after generation) ── -->
+  <div id="change-bar" style="display:none;margin-bottom:1rem">
+    <button class="btn btn-ghost btn-sm" onclick="showSetup()">&#9998; Change preferences</button>
+    <span id="prefs-summary" style="margin-left:0.8rem;font-size:0.85rem;color:#555"></span>
+  </div>
+
+  <!-- ── Generated schedule ── -->
+  <div id="schedule-output" style="display:none">
+    <div style="display:flex;gap:1.2rem;margin-bottom:0.8rem;font-size:0.82rem">
+      <span><span style="display:inline-block;width:12px;height:12px;background:#eef6ff;border:1px solid #ccc;margin-right:4px"></span>Classwork day</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#f0fff4;border:1px solid #ccc;margin-right:4px"></span>Homework day</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#fff8e1;border:1px solid #ccc;margin-right:4px"></span>Lab due</span>
+    </div>
+    <table class="schedule-table" id="schedule-table">
+      <thead>
+        <tr>
+          <th style="width:110px">Your date</th>
+          <th style="width:70px">Type</th>
+          <th>Topic / Activity</th>
+          <th>Readings</th>
+          <th>Due</th>
+        </tr>
+      </thead>
+      <tbody id="schedule-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer style="max-width:860px;margin:0 auto;padding:0 1.2rem 2rem">
+  Schedule data from <a href="https://pdos.csail.mit.edu/6.S081/2021/schedule.html" target="_blank">MIT 6.S081 Fall 2021</a>.
+  Dates personalised based on your preferences.
+</footer>
+
+<script>
+// ── Course data (MIT Fall 2021, linearised) ────────────────────────────────
+// Each entry is a classwork session. Homework and lab-due events are interleaved
+// by week index relative to the session they belong to.
+const SESSIONS = [
+  { type:'lec', n:1,  topic:'Introduction and examples',
+    readings:'Chapter 1',
+    hw:'Homework 1',
+    labAssign:{ name:'util', href:'labs/util.html' } },
+  { type:'lec', n:2,  topic:'C and gdb',
+    readings:'K&R 2.9, 5.1–5.6, 6.4' },
+  { type:'lec', n:3,  topic:'OS organization and system calls',
+    readings:'Chapter 2, kernel/proc.h, kernel/defs.h, kernel/entry.S, kernel/main.c, user/initcode.S, user/init.c',
+    hw:'Homework 2',
+    labAssign:{ name:'syscall', href:'labs/syscall.html' },
+    labDue:{ name:'util', href:'labs/util.html' } },
+  { type:'lec', n:4,  topic:'Page tables',
+    readings:'Chapter 3, kernel/memlayout.h, kernel/vm.c, kernel/kalloc.c, kernel/riscv.h',
+    hw:'Homework 3' },
+  { type:'lec', n:5,  topic:'GDB, calling conventions and stack frames (RISC-V)',
+    readings:'Calling Convention',
+    labAssign:{ name:'pgtbl', href:'labs/pgtbl.html' },
+    labDue:{ name:'syscall', href:'labs/syscall.html' } },
+  { type:'lec', n:6,  topic:'Isolation &amp; system call entry/exit',
+    readings:'Chapter 4, kernel/riscv.h, kernel/trampoline.S, kernel/trap.c',
+    hw:'Homework 4' },
+  { type:'lec', n:7,  topic:'Page faults',
+    readings:'Section 4.6',
+    hw:'Homework 5',
+    labAssign:{ name:'traps', href:'labs/traps.html' },
+    labDue:{ name:'pgtbl', href:'labs/pgtbl.html' } },
+  { type:'lec', n:8,  topic:'Q&amp;A labs',
+    hw:'Homework 6' },
+  { type:'lec', n:9,  topic:'Interrupts',
+    readings:'Chapter 5, kernel/trap.c, kernel/plic.c, kernel/console.c, kernel/uart.c, kernel/printf.c',
+    hw:'Homework 7',
+    labAssign:{ name:'cow', href:'labs/cow.html' },
+    labDue:{ name:'traps', href:'labs/traps.html' } },
+  { type:'lec', n:10, topic:'Multiprocessors and locking',
+    readings:'Locking section, kernel/spinlock.h, kernel/spinlock.c',
+    hw:'Homework 8' },
+  { type:'lec', n:11, topic:'Scheduling 1',
+    readings:'Scheduling section, kernel/proc.c, kernel/swtch.S',
+    hw:'Homework 9' },
+  { type:'lec', n:12, topic:'Scheduling 2',
+    readings:'Remainder of Scheduling section',
+    hw:'Homework 10',
+    labAssign:{ name:'thread', href:'labs/thread.html' },
+    labDue:{ name:'cow', href:'labs/cow.html' } },
+  { type:'lec', n:13, topic:'Q&amp;A labs',
+    hw:'Homework 11' },
+  { type:'lec', n:14, topic:'File systems',
+    readings:'kernel/bio.c, kernel/fs.c, kernel/sysfile.c, kernel/file.c, Logging section',
+    hw:'Homework 12',
+    labAssign:{ name:'net', href:'labs/net.html' },
+    labDue:{ name:'thread', href:'labs/thread.html' } },
+  { type:'lec', n:15, topic:'Crash recovery',
+    readings:'kernel/log.c, Logging section',
+    hw:'Homework 13' },
+  { type:'lec', n:16, topic:'File system performance and fast crash recovery',
+    readings:'Journaling the Linux ext2fs Filesystem',
+    hw:'Homework 14' },
+  { type:'lec', n:17, topic:'Virtual memory for applications',
+    readings:'Virtual Memory Primitives for User Programs',
+    hw:'Homework 15' },
+  { type:'lec', n:18, topic:'OS Organization',
+    readings:'The Performance of micro-Kernel-Based Systems',
+    hw:'Homework 16',
+    labAssign:{ name:'lock', href:'labs/lock.html' },
+    labDue:{ name:'net', href:'labs/net.html' } },
+  { type:'lec', n:19, topic:'Virtual Machines',
+    readings:'Dune: Safe User-level Access to Privileged CPU Features',
+    hw:'Homework 17' },
+  { type:'lec', n:20, topic:'Kernels and HLL',
+    readings:'Biscuit paper and FAQ',
+    hw:'Homework 18',
+    labAssign:{ name:'fs', href:'labs/fs.html' },
+    labDue:{ name:'lock', href:'labs/lock.html' } },
+  { type:'lec', n:21, topic:'Networking',
+    readings:'Receive Livelock',
+    hw:'Homework 19' },
+  { type:'special', topic:'Hacking day',
+    labDue:{ name:'fs', href:'labs/fs.html' },
+    labAssign:{ name:'mmap', href:'labs/mmap.html' } },
+  { type:'lec', n:22, topic:'Meltdown',
+    readings:'Meltdown paper',
+    hw:'Homework 20' },
+  { type:'lec', n:23, topic:'Multi-Core scalability and RCU',
+    readings:'RCU paper and FAQ',
+    hw:'Homework 21' },
+  { type:'lec', n:24, topic:'Current Research: Radiation Tolerance',
+    readings:'NASA CALIPSO paper',
+    hw:'Homework 22' },
+  { type:'lec', n:25, topic:'Q&amp;A',
+    hw:'Homework 23',
+    labDue:{ name:'mmap', href:'labs/mmap.html' } },
+];
+
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// ── Persist preferences ────────────────────────────────────────────────────
+function savePrefs(startDate, cwDays, hwDays) {
+  localStorage.setItem('6s081_prefs', JSON.stringify({ startDate, cwDays, hwDays }));
+}
+function loadPrefs() {
+  try { return JSON.parse(localStorage.getItem('6s081_prefs')); } catch { return null; }
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+function showSetup() {
+  document.getElementById('setup-card').style.display = '';
+  document.getElementById('schedule-output').style.display = 'none';
+  document.getElementById('change-bar').style.display = 'none';
+}
+
+function getChecked(groupId) {
+  return [...document.querySelectorAll(`#${groupId} .day-cb:checked`)].map(el => +el.value);
+}
+function setChecked(groupId, vals) {
+  document.querySelectorAll(`#${groupId} .day-cb`).forEach(el => {
+    el.checked = vals.includes(+el.value);
+  });
+}
+
+// ── Date helpers ───────────────────────────────────────────────────────────
+function addDays(date, n) {
+  const d = new Date(date); d.setDate(d.getDate() + n); return d;
+}
+function fmtDate(date) {
+  return date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+// Next occurrence of weekday (0=Sun…6=Sat) on or after `from`
+function nextWeekday(from, wd) {
+  const d = new Date(from);
+  const diff = (wd - d.getDay() + 7) % 7;
+  return addDays(d, diff);
+}
+
+// ── Generate schedule ──────────────────────────────────────────────────────
+function generateSchedule() {
+  const errEl = document.getElementById('setup-error');
+  errEl.textContent = '';
+
+  const startVal = document.getElementById('start-date').value;
+  if (!startVal) { errEl.textContent = 'Please pick a start date.'; return; }
+
+  const cwDays = getChecked('classwork-days');
+  const hwDays = getChecked('homework-days');
+
+  if (cwDays.length < 1) { errEl.textContent = 'Pick at least one classwork day.'; return; }
+  if (hwDays.length < 1) { errEl.textContent = 'Pick at least one homework day.'; return; }
+
+  savePrefs(startVal, cwDays, hwDays);
+
+  // Sort days within week
+  cwDays.sort((a,b) => a===0?7-b:b===0?a-7:a-b);
+  hwDays.sort((a,b) => a===0?7-b:b===0?a-7:a-b);
+
+  // Build a flat timeline: alternate classwork sessions with homework slots
+  // Strategy: walk through sessions, assigning each to next available classwork day.
+  // After each classwork day, assign the session's homework to next homework day.
+  const startDate = new Date(startVal + 'T12:00:00');
+  let cursor = new Date(startDate);
+
+  // Find the first classwork day on or after start
+  function nextCW(from) {
+    const candidates = cwDays.map(wd => nextWeekday(from, wd));
+    candidates.sort((a,b) => a-b);
+    return candidates[0];
+  }
+  function nextHW(from) {
+    const candidates = hwDays.map(wd => nextWeekday(from, wd));
+    candidates.sort((a,b) => a-b);
+    return candidates[0];
+  }
+
+  const rows = [];
+  let cwCursor = nextCW(cursor);
+
+  for (const session of SESSIONS) {
+    // Classwork row
+    rows.push({ date: new Date(cwCursor), rowType: 'classwork', session });
+    let hwCursor = nextHW(addDays(cwCursor, 1));
+
+    // Homework row (if session has hw)
+    if (session.hw) {
+      rows.push({ date: new Date(hwCursor), rowType: 'homework', label: session.hw, session });
+      cwCursor = nextCW(addDays(hwCursor, 1));
+    } else {
+      cwCursor = nextCW(addDays(cwCursor, 1));
+    }
+  }
+
+  // Render
+  const tbody = document.getElementById('schedule-body');
+  tbody.innerHTML = '';
+
+  let lastWeek = null;
+  for (const row of rows) {
+    const weekKey = `Week of ${fmtDate(startOfWeek(row.date))}`;
+    if (weekKey !== lastWeek) {
+      const tr = document.createElement('tr');
+      tr.className = 'week-header';
+      tr.innerHTML = `<td colspan="5">${weekKey}</td>`;
+      tbody.appendChild(tr);
+      lastWeek = weekKey;
+    }
+
+    const tr = document.createElement('tr');
+    const s = row.session;
+
+    if (row.rowType === 'classwork') {
+      tr.className = 'classwork-row';
+      let badge = '';
+      if (s.type === 'lec') badge = `<span class="badge badge-lec">LEC ${s.n}</span>`;
+      else if (s.type === 'special') badge = `<span class="badge badge-read">&#9733;</span>`;
+
+      let dueCell = '';
+      if (s.labDue) dueCell = `<span class="badge badge-due">Lab: <a href="${s.labDue.href}">${s.labDue.name}</a> due</span>`;
+      if (s.labAssign) dueCell += (dueCell?' ':'') + `<span class="badge badge-lab">Start: <a href="${s.labAssign.href}">${s.labAssign.name}</a></span>`;
+
+      tr.innerHTML = `
+        <td>${fmtDate(row.date)}</td>
+        <td>${badge}</td>
+        <td>${s.topic}</td>
+        <td style="color:#555;font-size:0.82rem">${s.readings || ''}</td>
+        <td>${dueCell}</td>`;
+    } else {
+      tr.className = 'homework-row';
+      tr.innerHTML = `
+        <td>${fmtDate(row.date)}</td>
+        <td><span class="badge badge-hw">HW</span></td>
+        <td>${row.label}</td>
+        <td></td><td></td>`;
+    }
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('setup-card').style.display = 'none';
+  document.getElementById('schedule-output').style.display = '';
+  document.getElementById('change-bar').style.display = '';
+  document.getElementById('prefs-summary').textContent =
+    `Starting ${startVal} · Classwork: ${cwDays.map(d=>DAY_NAMES[d]).join(', ')} · Homework: ${hwDays.map(d=>DAY_NAMES[d]).join(', ')}`;
+}
+
+function startOfWeek(date) {
+  const d = new Date(date);
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+// ── Auto-restore saved preferences ────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const p = loadPrefs();
+  if (p) {
+    document.getElementById('start-date').value = p.startDate;
+    setChecked('classwork-days', p.cwDays);
+    setChecked('homework-days', p.hwDays);
+    generateSchedule();
+  }
+});
+</script>
+</body>
+</html>

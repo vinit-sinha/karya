@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>6.S081 — Operating System Engineering</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script src="nav.js"></script>
+<script>renderNav('home')</script>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>6.S081 — Operating System Engineering</h1>
+    <p class="subtitle">Self-study edition &middot; Powered by <strong>Karya</strong></p>
+  </div>
+
+  <div class="tip">
+    <strong>First time here?</strong> Start with
+    <a href="schedule.html">Schedule</a> to personalise your study plan,
+    then <a href="tools.html">Tools</a> to verify your environment.
+  </div>
+
+  <h2>About this course</h2>
+  <p>
+    6.S081 teaches the fundamentals of operating systems through hands-on implementation
+    in <strong>xv6</strong> — a small Unix-like kernel running on RISC-V. You will implement
+    real OS features: system calls, page tables, traps, copy-on-write fork, multithreading,
+    a network driver, a file system, and memory-mapped files.
+  </p>
+  <p>
+    This is the self-learner edition of the
+    <a href="https://pdos.csail.mit.edu/6.S081/2021/" target="_blank">MIT Fall 2021 course</a>.
+    MIT-specific steps (Athena, Piazza, handin) are replaced with Karya equivalents.
+  </p>
+
+  <h2>Your workspace</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:0.9rem;margin-top:0.6em">
+    <tr>
+      <td style="padding:0.4em 0.7em;border-bottom:1px solid #eee;font-weight:600;width:35%">xv6 source</td>
+      <td style="padding:0.4em 0.7em;border-bottom:1px solid #eee"><code>starter-code/xv6-labs-2021/</code></td>
+    </tr>
+    <tr>
+      <td style="padding:0.4em 0.7em;border-bottom:1px solid #eee;font-weight:600">Your notes &amp; writeups</td>
+      <td style="padding:0.4em 0.7em;border-bottom:1px solid #eee"><code>work/&lt;lab&gt;/notes.md</code></td>
+    </tr>
+    <tr>
+      <td style="padding:0.4em 0.7em;border-bottom:1px solid #eee;font-weight:600">Lab tracker</td>
+      <td style="padding:0.4em 0.7em;border-bottom:1px solid #eee"><code>LABS.md</code></td>
+    </tr>
+    <tr>
+      <td style="padding:0.4em 0.7em;font-weight:600">VS Code tasks</td>
+      <td style="padding:0.4em 0.7em"><kbd>Cmd+Shift+P</kbd> → <em>Tasks: Run Task</em></td>
+    </tr>
+  </table>
+
+  <h2>Labs</h2>
+  <ul>
+    <li><a href="labs/util.html">Lab: Utilities</a> — sleep, pingpong, primes, find, xargs</li>
+    <li><a href="labs/syscall.html">Lab: System Calls</a> — trace, sysinfo</li>
+    <li><a href="labs/pgtbl.html">Lab: Page Tables</a> — speed up system calls, print a page table</li>
+    <li><a href="labs/traps.html">Lab: Traps</a> — RISC-V assembly, backtrace, alarm</li>
+    <li><a href="labs/cow.html">Lab: Copy-on-Write Fork</a></li>
+    <li><a href="labs/thread.html">Lab: Multithreading</a></li>
+    <li><a href="labs/net.html">Lab: Network Driver</a></li>
+    <li><a href="labs/lock.html">Lab: Locks</a></li>
+    <li><a href="labs/fs.html">Lab: File System</a></li>
+    <li><a href="labs/mmap.html">Lab: Mmap</a></li>
+  </ul>
+
+  <h2>Key links</h2>
+  <ul>
+    <li><a href="tools.html">Tools &amp; installation</a></li>
+    <li><a href="schedule.html">Personalised schedule</a></li>
+    <li><a href="https://pdos.csail.mit.edu/6.S081/2021/xv6/book-riscv-rev2.pdf" target="_blank">xv6 book (PDF)</a></li>
+    <li><a href="https://pdos.csail.mit.edu/6.S081/2021/" target="_blank">Original MIT course site ↗</a></li>
+  </ul>
+</div>
+
+<footer style="max-width:860px;margin:0 auto;padding:0 1.2rem 2rem">
+  Self-study edition based on
+  <a href="https://pdos.csail.mit.edu/6.S081/2021/">MIT 6.S081 Fall 2021</a>.
+  Original material &copy; MIT PDOS, used under
+  <a href="https://creativecommons.org/licenses/by/3.0/us/">CC BY 3.0</a>.
+</footer>
+</body>
+</html>
