@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "courseware-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["templates/learning/mit/6s081/.karya/customizations/files/docs/server.py", "7681"],
+      "port": 7681
+    }
+  ]
+}

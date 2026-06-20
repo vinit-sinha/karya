@@ -196,11 +196,29 @@ const SESSIONS = [
 
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-// ── Persist preferences ────────────────────────────────────────────────────
-function savePrefs(startDate, cwDays, hwDays) {
-  localStorage.setItem('6s081_prefs', JSON.stringify({ startDate, cwDays, hwDays }));
+// ── Persist preferences (server-side so any browser picks them up) ─────────
+async function savePrefs(startDate, cwDays, hwDays) {
+  const prefs = { startDate, cwDays, hwDays };
+  try {
+    await fetch('/save-prefs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prefs),
+    });
+  } catch {
+    // Server not running — fall back to localStorage silently
+    localStorage.setItem('6s081_prefs', JSON.stringify(prefs));
+  }
 }
-function loadPrefs() {
+async function loadPrefs() {
+  try {
+    const r = await fetch('/prefs');
+    if (r.ok) {
+      const data = await r.json();
+      if (data) return data;
+    }
+  } catch {}
+  // Fallback: localStorage (e.g. opened as file://)
   try { return JSON.parse(localStorage.getItem('6s081_prefs')); } catch { return null; }
 }
 
@@ -235,7 +253,7 @@ function nextWeekday(from, wd) {
 }
 
 // ── Generate schedule ──────────────────────────────────────────────────────
-function generateSchedule() {
+async function generateSchedule() {
   const errEl = document.getElementById('setup-error');
   errEl.textContent = '';
 
@@ -248,7 +266,7 @@ function generateSchedule() {
   if (cwDays.length < 1) { errEl.textContent = 'Pick at least one classwork day.'; return; }
   if (hwDays.length < 1) { errEl.textContent = 'Pick at least one homework day.'; return; }
 
-  savePrefs(startVal, cwDays, hwDays);
+  await savePrefs(startVal, cwDays, hwDays);
 
   // Sort days within week
   cwDays.sort((a,b) => a===0?7-b:b===0?a-7:a-b);
@@ -348,13 +366,13 @@ function startOfWeek(date) {
 }
 
 // ── Auto-restore saved preferences ────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  const p = loadPrefs();
+window.addEventListener('DOMContentLoaded', async () => {
+  const p = await loadPrefs();
   if (p) {
     document.getElementById('start-date').value = p.startDate;
     setChecked('classwork-days', p.cwDays);
     setChecked('homework-days', p.hwDays);
-    generateSchedule();
+    await generateSchedule();
   }
 });
 </script>

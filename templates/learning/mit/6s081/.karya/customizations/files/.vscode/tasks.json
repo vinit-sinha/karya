@@ -92,12 +92,31 @@
       "presentation": { "reveal": "always", "panel": "shared" }
     },
     {
-      "label": "Open Courseware Home Page",
-      "detail": "Open the local 6.S081 courseware (tools, schedule, labs) in your browser",
+      "label": "Courseware: start server",
+      "detail": "Start the local courseware server (tools, schedule, labs) at http://localhost:7681",
       "type": "shell",
-      "command": "open '${workspaceFolder}/docs/index.html'",
-      "windows": { "command": "start '' '${workspaceFolder}/docs/index.html'" },
-      "linux": { "command": "xdg-open '${workspaceFolder}/docs/index.html'" },
+      "command": "python3 docs/server.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\[6s081\\] Courseware running",
+          "endsPattern": "\\[6s081\\] Courseware running"
+        }
+      },
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "Open Courseware Home Page",
+      "detail": "Start the courseware server and open http://localhost:7681 in your browser",
+      "type": "shell",
+      "command": "open http://localhost:7681",
+      "windows": { "command": "start http://localhost:7681" },
+      "linux": { "command": "xdg-open http://localhost:7681" },
+      "dependsOn": "Courseware: start server",
       "problemMatcher": [],
       "group": "none",
       "presentation": { "reveal": "never", "panel": "shared" }
