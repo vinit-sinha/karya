@@ -503,6 +503,28 @@ async function generateSchedule() {
   document.getElementById('change-bar').style.display = '';
   document.getElementById('prefs-summary').textContent =
     `Starting ${startVal} · Classwork: ${cwDays.map(d=>DAY_NAMES[d]).join(', ')} · Homework: ${hwDays.map(d=>DAY_NAMES[d]).join(', ')}`;
+
+  // Save lab scheduled dates so the dashboard can compute delays
+  await _saveLabDates(rows);
+}
+
+// Extract scheduled start/due dates per lab from generated rows and POST to server
+async function _saveLabDates(rows) {
+  const dates = {};
+  for (const row of rows) {
+    if (row.rowType !== 'classwork') continue;
+    const s = row.session;
+    const iso = row.date.toISOString().slice(0, 10);
+    if (s.labAssign) dates[s.labAssign.name] = { ...(dates[s.labAssign.name] || {}), scheduledStart: iso };
+    if (s.labDue)    dates[s.labDue.name]    = { ...(dates[s.labDue.name]    || {}), scheduledDue:   iso };
+  }
+  try {
+    await fetch('/save-schedule-dates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dates),
+    });
+  } catch {}
 }
 
 function startOfWeek(date) {
