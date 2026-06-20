@@ -256,19 +256,23 @@ if [[ -d "$FILES_DIR/docs" ]]; then
     echo "[6s081] Installed docs/ (local courseware — open via VS Code task)"
 fi
 
-# ── Add Ctrl+Shift+T keybinding to open the VS Code task picker ──────────────
+# ── Add Cmd+Shift+T (Mac) / Ctrl+Shift+T (Linux) keybinding ─────────────────
+# Maps to 'workbench.action.tasks.test' so the shortcut shows only test-group
+# tasks — mirroring how Cmd+Shift+B shows only build-group tasks.
 # VS Code keybindings are user-level only (no project-level support).
-# We add it once to the user's keybindings.json if not already present.
 _add_vscode_keybinding() {
-    local binding='{ "key": "ctrl+shift+t", "command": "workbench.action.tasks.runTask" }'
     local kb_file=""
+    local key_combo=""
 
-    # Locate keybindings.json across platforms
     if [[ "$(uname -s)" == "Darwin" ]]; then
         kb_file="$HOME/Library/Application Support/Code/User/keybindings.json"
+        key_combo="cmd+shift+t"
     else
         kb_file="$HOME/.config/Code/User/keybindings.json"
+        key_combo="ctrl+shift+t"
     fi
+
+    local binding="{ \"key\": \"$key_combo\", \"command\": \"workbench.action.tasks.test\" }"
 
     # Create file with empty array if it doesn't exist
     if [[ ! -f "$kb_file" ]]; then
@@ -276,9 +280,23 @@ _add_vscode_keybinding() {
         echo "[]" > "$kb_file"
     fi
 
-    # Skip if binding already present
+    # Remove stale ctrl+shift+t binding if present (from earlier installs)
     if grep -q "ctrl+shift+t" "$kb_file" 2>/dev/null; then
-        echo "[6s081] VS Code keybinding Ctrl+Shift+T already set — skipping"
+        python3 - "$kb_file" <<'PYEOF'
+import json, sys
+path = sys.argv[1]
+with open(path) as f:
+    data = json.load(f)
+data = [b for b in data if b.get("key") != "ctrl+shift+t"]
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+PYEOF
+        echo "[6s081] Removed stale ctrl+shift+t keybinding"
+    fi
+
+    # Skip if correct binding already present
+    if grep -q "$key_combo" "$kb_file" 2>/dev/null; then
+        echo "[6s081] VS Code keybinding $key_combo already set — skipping"
         return
     fi
 
@@ -292,7 +310,7 @@ data.append(new_binding)
 with open(kb_file, "w") as f:
     json.dump(data, f, indent=2)
 PYEOF
-    echo "[6s081] Added Ctrl+Shift+T → 'Tasks: Run Task' to VS Code keybindings"
+    echo "[6s081] Added $key_combo → 'Tasks: Test' to VS Code keybindings"
 }
 _add_vscode_keybinding
 
