@@ -33,6 +33,7 @@ function renderNav(currentPage) {
   <div class="nav-inner">
     <a class="brand" href="${root}index.html">6.S081 <span>/ OS Engineering</span></a>
     <a class="nav-link${currentPage==='home'?' active':''}" href="${root}index.html">Home</a>
+    <a class="nav-link${currentPage==='dashboard'?' active':''}" href="${root}dashboard.html">Dashboard</a>
     <a class="nav-link${currentPage==='schedule'?' active':''}" href="${root}schedule.html">Schedule</a>
     <div class="nav-dropdown">
       <a class="nav-link${currentPage.startsWith('lab')?' active':''}">Labs</a>
