@@ -233,7 +233,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.chdir(DOCS_DIR)
-    with http.server.HTTPServer(("", PORT), Handler) as httpd:
+    try:
+        httpd = http.server.HTTPServer(("", PORT), Handler)
+    except OSError as e:
+        import errno
+        if e.errno == errno.EADDRINUSE:
+            print(f"[6s081] Courseware already running at http://localhost:{PORT} — nothing to do.")
+            raise SystemExit(0)
+        raise
+    with httpd:
         print(f"[6s081] Courseware running at http://localhost:{PORT}")
         print(f"[6s081] Project:     {PROJECT_DIR}")
         print(f"[6s081] Prefs:       {PREFS_FILE}")
