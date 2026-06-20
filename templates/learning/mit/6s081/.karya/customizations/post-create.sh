@@ -245,6 +245,16 @@ if [[ -f "$FILES_DIR/.vscode/settings.json" ]]; then
     cp "$FILES_DIR/.vscode/settings.json" "$PROJECT_ROOT/.vscode/settings.json"
     echo "[6s081] Installed .vscode/settings.json (opens README.md on launch)"
 fi
+if [[ -f "$FILES_DIR/.vscode/extensions.json" ]]; then
+    cp "$FILES_DIR/.vscode/extensions.json" "$PROJECT_ROOT/.vscode/extensions.json"
+    echo "[6s081] Installed .vscode/extensions.json (Live Preview recommendation)"
+fi
+
+# Install local courseware (tools, schedule, labs) — opened via "Open Courseware Home Page" task
+if [[ -d "$FILES_DIR/docs" ]]; then
+    cp -R "$FILES_DIR/docs" "$PROJECT_ROOT/docs"
+    echo "[6s081] Installed docs/ (local courseware — open via VS Code task)"
+fi
 
 # Install project README and CLAUDE.md (human + AI instructions)
 for f in README.md CLAUDE.md; do
