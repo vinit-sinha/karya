@@ -256,23 +256,24 @@ if [[ -d "$FILES_DIR/docs" ]]; then
     echo "[6s081] Installed docs/ (local courseware — open via VS Code task)"
 fi
 
-# ── Add Cmd+Shift+T (Mac) / Ctrl+Shift+T (Linux) keybinding ─────────────────
-# Maps to 'workbench.action.tasks.test' so the shortcut shows only test-group
-# tasks — mirroring how Cmd+Shift+B shows only build-group tasks.
+# ── Add VS Code keybindings for task palettes ────────────────────────────────
+# Cmd+Shift+B (Mac) / Ctrl+Shift+B (Linux) → full task palette (all tasks)
+#   Override VS Code default (build-only) so searching a lab name shows all 4
+#   tasks for that lab (start, boot, run tests, done) in one place.
+# Cmd+Shift+T (Mac) / Ctrl+Shift+T (Linux) → test palette (test tasks only)
+#   Shows only kind:test tasks — xv6: run tests and Lab: done across all labs.
 # VS Code keybindings are user-level only (no project-level support).
-_add_vscode_keybinding() {
+_add_vscode_keybindings() {
     local kb_file=""
-    local key_combo=""
+    local mod=""
 
     if [[ "$(uname -s)" == "Darwin" ]]; then
         kb_file="$HOME/Library/Application Support/Code/User/keybindings.json"
-        key_combo="cmd+shift+t"
+        mod="cmd"
     else
         kb_file="$HOME/.config/Code/User/keybindings.json"
-        key_combo="ctrl+shift+t"
+        mod="ctrl"
     fi
-
-    local binding="{ \"key\": \"$key_combo\", \"command\": \"workbench.action.tasks.test\" }"
 
     # Create file with empty array if it doesn't exist
     if [[ ! -f "$kb_file" ]]; then
@@ -280,39 +281,42 @@ _add_vscode_keybinding() {
         echo "[]" > "$kb_file"
     fi
 
-    # Remove stale ctrl+shift+t binding if present (from earlier installs)
-    if grep -q "ctrl+shift+t" "$kb_file" 2>/dev/null; then
-        python3 - "$kb_file" <<'PYEOF'
+    # Remove stale bindings from earlier installs (ctrl+shift+t, wrong commands)
+    python3 - "$kb_file" <<'PYEOF'
 import json, sys
 path = sys.argv[1]
 with open(path) as f:
     data = json.load(f)
-data = [b for b in data if b.get("key") != "ctrl+shift+t"]
+stale_keys = {"ctrl+shift+t", "cmd+shift+t", "cmd+shift+b", "ctrl+shift+b"}
+stale_cmds = {"workbench.action.tasks.runTask", "workbench.action.tasks.test",
+              "workbench.action.tasks.build"}
+before = len(data)
+data = [b for b in data
+        if not (b.get("key") in stale_keys and b.get("command") in stale_cmds)]
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+if len(data) < before:
+    print(f"[6s081] Removed {before - len(data)} stale keybinding(s)")
+PYEOF
+
+    # Append both bindings
+    python3 - "$kb_file" "$mod" <<'PYEOF'
+import json, sys
+path, mod = sys.argv[1], sys.argv[2]
+new_bindings = [
+    {"key": f"{mod}+shift+b", "command": "workbench.action.tasks.runTask"},
+    {"key": f"{mod}+shift+t", "command": "workbench.action.tasks.test"},
+]
+with open(path) as f:
+    data = json.load(f)
+data.extend(new_bindings)
 with open(path, "w") as f:
     json.dump(data, f, indent=2)
 PYEOF
-        echo "[6s081] Removed stale ctrl+shift+t keybinding"
-    fi
-
-    # Skip if correct binding already present
-    if grep -q "$key_combo" "$kb_file" 2>/dev/null; then
-        echo "[6s081] VS Code keybinding $key_combo already set — skipping"
-        return
-    fi
-
-    # Append binding into the array using Python (avoids JSON parsing in bash)
-    python3 - "$kb_file" "$binding" <<'PYEOF'
-import json, sys
-kb_file, new_binding = sys.argv[1], json.loads(sys.argv[2])
-with open(kb_file) as f:
-    data = json.load(f)
-data.append(new_binding)
-with open(kb_file, "w") as f:
-    json.dump(data, f, indent=2)
-PYEOF
-    echo "[6s081] Added $key_combo → 'Tasks: Test' to VS Code keybindings"
+    echo "[6s081] Set ${mod}+shift+b → 'Tasks: Run Task' (full palette)"
+    echo "[6s081] Set ${mod}+shift+t → 'Tasks: Test' (test tasks only)"
 }
-_add_vscode_keybinding
+_add_vscode_keybindings
 
 # Install project README and CLAUDE.md (human + AI instructions)
 for f in README.md CLAUDE.md; do
