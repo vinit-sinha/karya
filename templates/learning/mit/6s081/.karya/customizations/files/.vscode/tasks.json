@@ -46,7 +46,7 @@
       "label": "karya [util:2] xv6: boot",
       "detail": "Lab 1 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -122,7 +122,7 @@
       "label": "karya [syscall:2] xv6: boot",
       "detail": "Lab 2 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -198,7 +198,7 @@
       "label": "karya [pagetable:2] xv6: boot",
       "detail": "Lab 3 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -274,7 +274,7 @@
       "label": "karya [traps:2] xv6: boot",
       "detail": "Lab 4 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -350,7 +350,7 @@
       "label": "karya [cow:2] xv6: boot",
       "detail": "Lab 5 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -426,7 +426,7 @@
       "label": "karya [thread:2] xv6: boot",
       "detail": "Lab 6 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -502,7 +502,7 @@
       "label": "karya [net:2] xv6: boot",
       "detail": "Lab 7 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -578,7 +578,7 @@
       "label": "karya [lock:2] xv6: boot",
       "detail": "Lab 8 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -654,7 +654,7 @@
       "label": "karya [fs:2] xv6: boot",
       "detail": "Lab 9 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },
@@ -730,7 +730,7 @@
       "label": "karya [mmap:2] xv6: boot",
       "detail": "Lab 10 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
       "type": "shell",
-      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; done=False; [out.append(l) or (not done and l.startswith('CFLAGS =') and not any('Wno-error' in x for x in lines) and out.append(flag) and False) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
       "options": {
         "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
       },

@@ -38,25 +38,31 @@ fi
 git checkout -b "$LAB" --track "origin/$LAB" 2>/dev/null || git checkout "$LAB"
 echo "xv6 is on branch: $LAB"
 
-# Re-apply Makefile patch on every checkout — newer GCC treats infinite
-# recursion in sh.c as a fatal error; the upstream Makefile doesn't include
-# the suppression flag. Use Python to insert a real newline (BSD sed \n is unreliable).
+# Re-apply Makefile patch on every checkout — newer GCC errors on patterns
+# that older GCC only warned about. Use Python for reliable newline insertion.
+_COMPAT_FLAGS="Wno-error=infinite-recursion Wno-error=incompatible-pointer-types"
 MAKEFILE="$XV6/Makefile"
-if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=infinite-recursion" "$MAKEFILE"; then
+if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=incompatible-pointer-types" "$MAKEFILE"; then
     python3 - "$MAKEFILE" <<'PYEOF'
 import sys
 path = sys.argv[1]
+flags = [
+    'CFLAGS += -Wno-error=infinite-recursion\n',
+    'CFLAGS += -Wno-error=incompatible-pointer-types\n',
+]
 with open(path) as f:
     lines = f.readlines()
-out = []
+# Remove any stale karya compat flags first
+lines = [l for l in lines if not any(f.strip() in l for f in flags)]
+out = []; inserted = False
 for line in lines:
     out.append(line)
-    if line.startswith('CFLAGS :=') and not any('Wno-error=infinite-recursion' in l for l in lines):
-        out.append('CFLAGS += -Wno-error=infinite-recursion\n')
+    if not inserted and line.startswith('CFLAGS ='):
+        out.extend(flags); inserted = True
 with open(path, 'w') as f:
     f.writelines(out)
 PYEOF
-    echo "Patched Makefile: added -Wno-error=infinite-recursion"
+    echo "Patched Makefile: added GCC compat flags"
 fi
 
 cd "$PROJECT_ROOT"
