@@ -8,7 +8,7 @@
       "command": "bash scripts/lab-start.sh ${input:labName}",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "shared", "clear": false }
     },
     {
@@ -18,7 +18,7 @@
       "command": "bash scripts/lab-done.sh ${input:labName}",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
-      "group": "test",
+      "group": { "kind": "test", "isDefault": true },
       "presentation": { "reveal": "always", "panel": "shared", "clear": false }
     },
     {
@@ -28,17 +28,17 @@
       "command": "make qemu",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": true },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
       "label": "xv6: run tests (make grade)",
-      "detail": "Run all tests for the current lab branch — Cmd+Shift+T to pick",
+      "detail": "Run all tests for the current lab branch",
       "type": "shell",
       "command": "make grade",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
       "problemMatcher": [],
-      "group": "test",
+      "group": { "kind": "test", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
@@ -48,7 +48,7 @@
       "command": "make qemu-gdb",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
@@ -58,7 +58,7 @@
       "command": "make clean",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "shared" }
     },
     {
@@ -68,7 +68,7 @@
       "command": "karya workstate save",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "shared" }
     },
     {
@@ -78,7 +78,7 @@
       "command": "karya workstate list",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "shared" }
     },
     {
@@ -88,7 +88,7 @@
       "command": "karya workstate resume --apply",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "shared" }
     },
     {
@@ -106,7 +106,7 @@
           "endsPattern": "\\[6s081\\] Courseware running"
         }
       },
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
@@ -118,7 +118,7 @@
       "linux": { "command": "xdg-open http://localhost:7681" },
       "dependsOn": "Courseware: start server",
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "never", "panel": "shared" }
     },
     {
@@ -128,7 +128,7 @@
       "command": "karya create project --uri kosh://learning/mit/6s081 --continue",
       "options": { "cwd": "${workspaceFolder}/../../.." },
       "problemMatcher": [],
-      "group": "none",
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "shared" }
     }
   ],
