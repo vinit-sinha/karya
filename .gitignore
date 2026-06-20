@@ -35,3 +35,7 @@ Icon\r
 
 .vscode
 .idea
+
+# 6.S081 courseware server — runtime data files (generated per-user, not committed)
+templates/learning/mit/6s081/.karya/customizations/files/docs/.schedule-prefs.json
+templates/learning/mit/6s081/.karya/customizations/files/docs/.lab-status.json
