@@ -18,7 +18,7 @@
       "command": "bash scripts/lab-done.sh ${input:labName}",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
-      "group": { "kind": "test", "isDefault": true },
+      "group": { "kind": "test", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "shared", "clear": false }
     },
     {
@@ -28,7 +28,7 @@
       "command": "make qemu",
       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": true },
+      "group": { "kind": "build", "isDefault": false },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
