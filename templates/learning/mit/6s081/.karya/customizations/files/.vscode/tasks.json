@@ -6,141 +6,920 @@
       "detail": "Start the local courseware server and open http://localhost:7681 in your browser",
       "type": "shell",
       "command": "open http://localhost:7681",
-      "windows": { "command": "start http://localhost:7681" },
-      "linux": { "command": "xdg-open http://localhost:7681" },
+      "windows": {
+        "command": "start http://localhost:7681"
+      },
+      "linux": {
+        "command": "xdg-open http://localhost:7681"
+      },
       "dependsOn": "karya [~] Courseware: start server",
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": false },
-      "presentation": { "reveal": "never", "panel": "shared" }
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared"
+      }
     },
-
-    { "label": "karya [util:1] Lab: start",    "detail": "Lab 1 of 10 — checkout util branch, create work/util/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh util",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [util:2] xv6: boot",     "detail": "Lab 1 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                    "type": "shell", "command": "make qemu",                        "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [util:3] xv6: run tests","detail": "Lab 1 of 10 — run make grade for the util lab",                                        "type": "shell", "command": "make grade",                        "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [util:4] Lab: done",     "detail": "Lab 1 of 10 — make grade, create writeup, push to origin, save done checkpoint",       "type": "shell", "command": "bash scripts/lab-done.sh util",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [syscall:1] Lab: start",    "detail": "Lab 2 of 10 — checkout syscall branch, create work/syscall/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh syscall",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [syscall:2] xv6: boot",     "detail": "Lab 2 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                       "type": "shell", "command": "make qemu",                            "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [syscall:3] xv6: run tests","detail": "Lab 2 of 10 — run make grade for the syscall lab",                                         "type": "shell", "command": "make grade",                           "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [syscall:4] Lab: done",     "detail": "Lab 2 of 10 — make grade, create writeup, push to origin, save done checkpoint",           "type": "shell", "command": "bash scripts/lab-done.sh syscall",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [pagetable:1] Lab: start",    "detail": "Lab 3 of 10 — checkout pagetable branch, create work/pagetable/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh pagetable",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [pagetable:2] xv6: boot",     "detail": "Lab 3 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                          "type": "shell", "command": "make qemu",                              "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [pagetable:3] xv6: run tests","detail": "Lab 3 of 10 — run make grade for the pagetable lab",                                         "type": "shell", "command": "make grade",                             "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [pagetable:4] Lab: done",     "detail": "Lab 3 of 10 — make grade, create writeup, push to origin, save done checkpoint",             "type": "shell", "command": "bash scripts/lab-done.sh pagetable",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [traps:1] Lab: start",    "detail": "Lab 4 of 10 — checkout traps branch, create work/traps/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh traps",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [traps:2] xv6: boot",     "detail": "Lab 4 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                     "type": "shell", "command": "make qemu",                          "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [traps:3] xv6: run tests","detail": "Lab 4 of 10 — run make grade for the traps lab",                                        "type": "shell", "command": "make grade",                         "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [traps:4] Lab: done",     "detail": "Lab 4 of 10 — make grade, create writeup, push to origin, save done checkpoint",         "type": "shell", "command": "bash scripts/lab-done.sh traps",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [cow:1] Lab: start",    "detail": "Lab 5 of 10 — checkout cow branch, create work/cow/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh cow",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [cow:2] xv6: boot",     "detail": "Lab 5 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                  "type": "shell", "command": "make qemu",                       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [cow:3] xv6: run tests","detail": "Lab 5 of 10 — run make grade for the cow lab",                                       "type": "shell", "command": "make grade",                      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [cow:4] Lab: done",     "detail": "Lab 5 of 10 — make grade, create writeup, push to origin, save done checkpoint",      "type": "shell", "command": "bash scripts/lab-done.sh cow",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [thread:1] Lab: start",    "detail": "Lab 6 of 10 — checkout thread branch, create work/thread/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh thread",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [thread:2] xv6: boot",     "detail": "Lab 6 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                      "type": "shell", "command": "make qemu",                           "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [thread:3] xv6: run tests","detail": "Lab 6 of 10 — run make grade for the thread lab",                                        "type": "shell", "command": "make grade",                          "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [thread:4] Lab: done",     "detail": "Lab 6 of 10 — make grade, create writeup, push to origin, save done checkpoint",          "type": "shell", "command": "bash scripts/lab-done.sh thread",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [net:1] Lab: start",    "detail": "Lab 7 of 10 — checkout net branch, create work/net/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh net",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [net:2] xv6: boot",     "detail": "Lab 7 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                 "type": "shell", "command": "make qemu",                      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [net:3] xv6: run tests","detail": "Lab 7 of 10 — run make grade for the net lab",                                      "type": "shell", "command": "make grade",                     "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [net:4] Lab: done",     "detail": "Lab 7 of 10 — make grade, create writeup, push to origin, save done checkpoint",    "type": "shell", "command": "bash scripts/lab-done.sh net",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [lock:1] Lab: start",    "detail": "Lab 8 of 10 — checkout lock branch, create work/lock/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh lock",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [lock:2] xv6: boot",     "detail": "Lab 8 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                  "type": "shell", "command": "make qemu",                        "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [lock:3] xv6: run tests","detail": "Lab 8 of 10 — run make grade for the lock lab",                                     "type": "shell", "command": "make grade",                       "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [lock:4] Lab: done",     "detail": "Lab 8 of 10 — make grade, create writeup, push to origin, save done checkpoint",     "type": "shell", "command": "bash scripts/lab-done.sh lock",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [fs:1] Lab: start",    "detail": "Lab 9 of 10 — checkout fs branch, create work/fs/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh fs",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [fs:2] xv6: boot",     "detail": "Lab 9 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                               "type": "shell", "command": "make qemu",                     "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [fs:3] xv6: run tests","detail": "Lab 9 of 10 — run make grade for the fs lab",                                     "type": "shell", "command": "make grade",                    "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [fs:4] Lab: done",     "detail": "Lab 9 of 10 — make grade, create writeup, push to origin, save done checkpoint",   "type": "shell", "command": "bash scripts/lab-done.sh fs",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
-    { "label": "karya [mmap:1] Lab: start",    "detail": "Lab 10 of 10 — checkout mmap branch, create work/mmap/notes.md, save start checkpoint",  "type": "shell", "command": "bash scripts/lab-start.sh mmap",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-    { "label": "karya [mmap:2] xv6: boot",     "detail": "Lab 10 of 10 — boot xv6 in QEMU (Ctrl-a x to exit)",                                  "type": "shell", "command": "make qemu",                         "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "build", "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [mmap:3] xv6: run tests","detail": "Lab 10 of 10 — run make grade for the mmap lab",                                      "type": "shell", "command": "make grade",                        "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" }, "problemMatcher": [], "group": { "kind": "test",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "dedicated", "clear": true } },
-    { "label": "karya [mmap:4] Lab: done",     "detail": "Lab 10 of 10 — make grade, create writeup, push to origin, save done checkpoint",     "type": "shell", "command": "bash scripts/lab-done.sh mmap",    "options": { "cwd": "${workspaceFolder}" }, "problemMatcher": [], "group": { "kind": "build",  "isDefault": false }, "presentation": { "reveal": "always", "panel": "shared",    "clear": false } },
-
+    {
+      "label": "karya [util:1] Lab: start",
+      "detail": "Lab 1 of 10 \u2014 checkout util branch, create work/util/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh util",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [util:2] xv6: boot",
+      "detail": "Lab 1 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [util:3] xv6: run tests",
+      "detail": "Lab 1 of 10 \u2014 run make grade for the util lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [util:4] Lab: done",
+      "detail": "Lab 1 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh util",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [syscall:1] Lab: start",
+      "detail": "Lab 2 of 10 \u2014 checkout syscall branch, create work/syscall/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh syscall",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [syscall:2] xv6: boot",
+      "detail": "Lab 2 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [syscall:3] xv6: run tests",
+      "detail": "Lab 2 of 10 \u2014 run make grade for the syscall lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [syscall:4] Lab: done",
+      "detail": "Lab 2 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh syscall",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [pagetable:1] Lab: start",
+      "detail": "Lab 3 of 10 \u2014 checkout pagetable branch, create work/pagetable/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh pagetable",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [pagetable:2] xv6: boot",
+      "detail": "Lab 3 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [pagetable:3] xv6: run tests",
+      "detail": "Lab 3 of 10 \u2014 run make grade for the pagetable lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [pagetable:4] Lab: done",
+      "detail": "Lab 3 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh pagetable",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [traps:1] Lab: start",
+      "detail": "Lab 4 of 10 \u2014 checkout traps branch, create work/traps/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh traps",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [traps:2] xv6: boot",
+      "detail": "Lab 4 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [traps:3] xv6: run tests",
+      "detail": "Lab 4 of 10 \u2014 run make grade for the traps lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [traps:4] Lab: done",
+      "detail": "Lab 4 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh traps",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [cow:1] Lab: start",
+      "detail": "Lab 5 of 10 \u2014 checkout cow branch, create work/cow/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh cow",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [cow:2] xv6: boot",
+      "detail": "Lab 5 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [cow:3] xv6: run tests",
+      "detail": "Lab 5 of 10 \u2014 run make grade for the cow lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [cow:4] Lab: done",
+      "detail": "Lab 5 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh cow",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [thread:1] Lab: start",
+      "detail": "Lab 6 of 10 \u2014 checkout thread branch, create work/thread/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh thread",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [thread:2] xv6: boot",
+      "detail": "Lab 6 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [thread:3] xv6: run tests",
+      "detail": "Lab 6 of 10 \u2014 run make grade for the thread lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [thread:4] Lab: done",
+      "detail": "Lab 6 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh thread",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [net:1] Lab: start",
+      "detail": "Lab 7 of 10 \u2014 checkout net branch, create work/net/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh net",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [net:2] xv6: boot",
+      "detail": "Lab 7 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [net:3] xv6: run tests",
+      "detail": "Lab 7 of 10 \u2014 run make grade for the net lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [net:4] Lab: done",
+      "detail": "Lab 7 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh net",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [lock:1] Lab: start",
+      "detail": "Lab 8 of 10 \u2014 checkout lock branch, create work/lock/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh lock",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [lock:2] xv6: boot",
+      "detail": "Lab 8 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [lock:3] xv6: run tests",
+      "detail": "Lab 8 of 10 \u2014 run make grade for the lock lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [lock:4] Lab: done",
+      "detail": "Lab 8 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh lock",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [fs:1] Lab: start",
+      "detail": "Lab 9 of 10 \u2014 checkout fs branch, create work/fs/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh fs",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [fs:2] xv6: boot",
+      "detail": "Lab 9 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [fs:3] xv6: run tests",
+      "detail": "Lab 9 of 10 \u2014 run make grade for the fs lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [fs:4] Lab: done",
+      "detail": "Lab 9 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh fs",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [mmap:1] Lab: start",
+      "detail": "Lab 10 of 10 \u2014 checkout mmap branch, create work/mmap/notes.md, save start checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-start.sh mmap",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "karya [mmap:2] xv6: boot",
+      "detail": "Lab 10 of 10 \u2014 boot xv6 in QEMU (Ctrl-a x to exit)",
+      "type": "shell",
+      "command": "grep -q 'Wno-error=infinite-recursion' Makefile || python3 -c \"import sys; path='Makefile'; f=open(path); lines=f.readlines(); f.close(); flag='CFLAGS += -Wno-error=infinite-recursion\\\\n'; out=[]; [out.append(l) or (out.append(flag) if l.startswith('CFLAGS :=') and not any('Wno-error' in x for x in lines) else None) for l in lines]; open(path,'w').writelines(out)\" && make qemu",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [mmap:3] xv6: run tests",
+      "detail": "Lab 10 of 10 \u2014 run make grade for the mmap lab",
+      "type": "shell",
+      "command": "make grade",
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "karya [mmap:4] Lab: done",
+      "detail": "Lab 10 of 10 \u2014 make grade, create writeup, push to origin, save done checkpoint",
+      "type": "shell",
+      "command": "bash scripts/lab-done.sh mmap",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
     {
       "label": "karya [~] Courseware: start server",
       "detail": "Start the local courseware server at http://localhost:7681 (runs in background)",
       "type": "shell",
       "command": "python3 docs/server.py",
-      "options": { "cwd": "${workspaceFolder}" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "isBackground": true,
       "problemMatcher": {
-        "pattern": { "regexp": "^$" },
+        "pattern": {
+          "regexp": "^$"
+        },
         "background": {
           "activeOnStart": true,
           "beginsPattern": "\\[6s081\\] Courseware",
           "endsPattern": "\\[6s081\\] Courseware"
         }
       },
-      "group": { "kind": "build", "isDefault": false },
-      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     },
     {
       "label": "karya [~] xv6: debug",
-      "detail": "Start QEMU in debug mode — attach GDB with: riscv64-unknown-elf-gdb",
+      "detail": "Start QEMU in debug mode \u2014 attach GDB with: riscv64-unknown-elf-gdb",
       "type": "shell",
       "command": "make qemu-gdb",
-      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": false },
-      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     },
     {
       "label": "karya [~] xv6: clean",
       "detail": "Run make clean in xv6",
       "type": "shell",
       "command": "make clean",
-      "options": { "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021" },
+      "options": {
+        "cwd": "${workspaceFolder}/starter-code/xv6-labs-2021"
+      },
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": false },
-      "presentation": { "reveal": "always", "panel": "shared" }
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     },
     {
       "label": "karya [~] Checkpoint: save",
       "detail": "Save current git state as a karya workstate checkpoint",
       "type": "shell",
       "command": "karya workstate save",
-      "options": { "cwd": "${workspaceFolder}" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": false },
-      "presentation": { "reveal": "always", "panel": "shared" }
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     },
     {
       "label": "karya [~] Checkpoint: list",
       "detail": "List all saved karya workstate checkpoints",
       "type": "shell",
       "command": "karya workstate list",
-      "options": { "cwd": "${workspaceFolder}" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": false },
-      "presentation": { "reveal": "always", "panel": "shared" }
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     },
     {
       "label": "karya [~] Checkpoint: resume",
       "detail": "Restore the latest karya workstate checkpoint",
       "type": "shell",
       "command": "karya workstate resume --apply",
-      "options": { "cwd": "${workspaceFolder}" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": false },
-      "presentation": { "reveal": "always", "panel": "shared" }
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     },
     {
       "label": "karya [~] Setup: re-run post-create",
-      "detail": "Re-run setup hooks (idempotent — safe to run any time)",
+      "detail": "Re-run setup hooks (idempotent \u2014 safe to run any time)",
       "type": "shell",
       "command": "karya create project --uri kosh://learning/mit/6s081 --continue",
-      "options": { "cwd": "${workspaceFolder}/../../.." },
+      "options": {
+        "cwd": "${workspaceFolder}/../../.."
+      },
       "problemMatcher": [],
-      "group": { "kind": "build", "isDefault": false },
-      "presentation": { "reveal": "always", "panel": "shared" }
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     }
   ]
 }

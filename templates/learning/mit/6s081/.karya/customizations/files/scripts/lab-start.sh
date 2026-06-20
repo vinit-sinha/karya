@@ -40,11 +40,22 @@ echo "xv6 is on branch: $LAB"
 
 # Re-apply Makefile patch on every checkout — newer GCC treats infinite
 # recursion in sh.c as a fatal error; the upstream Makefile doesn't include
-# the suppression flag.
+# the suppression flag. Use Python to insert a real newline (BSD sed \n is unreliable).
 MAKEFILE="$XV6/Makefile"
 if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=infinite-recursion" "$MAKEFILE"; then
-    sed -i.bak 's/\(CFLAGS :=.*\)/\1\nCFLAGS += -Wno-error=infinite-recursion/' "$MAKEFILE"
-    rm -f "$MAKEFILE.bak"
+    python3 - "$MAKEFILE" <<'PYEOF'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.readlines()
+out = []
+for line in lines:
+    out.append(line)
+    if line.startswith('CFLAGS :=') and not any('Wno-error=infinite-recursion' in l for l in lines):
+        out.append('CFLAGS += -Wno-error=infinite-recursion\n')
+with open(path, 'w') as f:
+    f.writelines(out)
+PYEOF
     echo "Patched Makefile: added -Wno-error=infinite-recursion"
 fi
 
