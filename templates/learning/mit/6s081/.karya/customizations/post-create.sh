@@ -225,8 +225,19 @@ echo "[6s081] ── Step 3/6: Patch Makefile ───────────�
 # as infinite recursion errors (-Werror turns -Winfinite-recursion fatal).
 MAKEFILE="$STARTER/Makefile"
 if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=infinite-recursion" "$MAKEFILE"; then
-    sed -i.bak 's/\(CFLAGS :=.*\)/\1\nCFLAGS += -Wno-error=infinite-recursion/' "$MAKEFILE"
-    rm -f "$MAKEFILE.bak"
+    python3 - "$MAKEFILE" <<'PYEOF'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.readlines()
+out = []
+for line in lines:
+    out.append(line)
+    if line.startswith('CFLAGS :=') and not any('Wno-error=infinite-recursion' in l for l in lines):
+        out.append('CFLAGS += -Wno-error=infinite-recursion\n')
+with open(path, 'w') as f:
+    f.writelines(out)
+PYEOF
     echo "[6s081] Patched Makefile: added -Wno-error=infinite-recursion"
 else
     echo "[6s081] Makefile already patched."
