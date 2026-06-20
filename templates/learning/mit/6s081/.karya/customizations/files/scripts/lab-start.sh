@@ -37,6 +37,17 @@ if ! git show-ref --verify --quiet "refs/remotes/origin/$LAB" && \
 fi
 git checkout -b "$LAB" --track "origin/$LAB" 2>/dev/null || git checkout "$LAB"
 echo "xv6 is on branch: $LAB"
+
+# Re-apply Makefile patch on every checkout — newer GCC treats infinite
+# recursion in sh.c as a fatal error; the upstream Makefile doesn't include
+# the suppression flag.
+MAKEFILE="$XV6/Makefile"
+if [[ -f "$MAKEFILE" ]] && ! grep -q "Wno-error=infinite-recursion" "$MAKEFILE"; then
+    sed -i.bak 's/\(CFLAGS :=.*\)/\1\nCFLAGS += -Wno-error=infinite-recursion/' "$MAKEFILE"
+    rm -f "$MAKEFILE.bak"
+    echo "Patched Makefile: added -Wno-error=infinite-recursion"
+fi
+
 cd "$PROJECT_ROOT"
 
 # Create work/<lab>/notes.md if it doesn't exist
