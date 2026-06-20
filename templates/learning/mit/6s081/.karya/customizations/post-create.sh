@@ -256,6 +256,46 @@ if [[ -d "$FILES_DIR/docs" ]]; then
     echo "[6s081] Installed docs/ (local courseware — open via VS Code task)"
 fi
 
+# ── Add Ctrl+Shift+T keybinding to open the VS Code task picker ──────────────
+# VS Code keybindings are user-level only (no project-level support).
+# We add it once to the user's keybindings.json if not already present.
+_add_vscode_keybinding() {
+    local binding='{ "key": "ctrl+shift+t", "command": "workbench.action.tasks.runTask" }'
+    local kb_file=""
+
+    # Locate keybindings.json across platforms
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        kb_file="$HOME/Library/Application Support/Code/User/keybindings.json"
+    else
+        kb_file="$HOME/.config/Code/User/keybindings.json"
+    fi
+
+    # Create file with empty array if it doesn't exist
+    if [[ ! -f "$kb_file" ]]; then
+        mkdir -p "$(dirname "$kb_file")"
+        echo "[]" > "$kb_file"
+    fi
+
+    # Skip if binding already present
+    if grep -q "ctrl+shift+t" "$kb_file" 2>/dev/null; then
+        echo "[6s081] VS Code keybinding Ctrl+Shift+T already set — skipping"
+        return
+    fi
+
+    # Append binding into the array using Python (avoids JSON parsing in bash)
+    python3 - "$kb_file" "$binding" <<'PYEOF'
+import json, sys
+kb_file, new_binding = sys.argv[1], json.loads(sys.argv[2])
+with open(kb_file) as f:
+    data = json.load(f)
+data.append(new_binding)
+with open(kb_file, "w") as f:
+    json.dump(data, f, indent=2)
+PYEOF
+    echo "[6s081] Added Ctrl+Shift+T → 'Tasks: Run Task' to VS Code keybindings"
+}
+_add_vscode_keybinding
+
 # Install project README and CLAUDE.md (human + AI instructions)
 for f in README.md CLAUDE.md; do
     if [[ -f "$FILES_DIR/$f" ]]; then
