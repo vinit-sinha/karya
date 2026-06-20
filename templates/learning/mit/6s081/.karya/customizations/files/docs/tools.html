@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tools — 6.S081</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script src="nav.js"></script>
+<script>renderNav('tools')</script>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>Tools</h1>
+    <p class="subtitle">Setting up your RISC-V development environment</p>
+  </div>
+
+  <div class="tip">
+    <strong>Karya users:</strong> If you created this project with <code>karya create project --uri kosh://learning/mit/6s081</code>,
+    the toolchain and QEMU were installed automatically. Jump straight to <a href="#verify">Verify your installation</a>.
+  </div>
+
+  <p>
+    For this course you need RISC-V versions of: QEMU 5.1+, GDB 8.3+, GCC, and Binutils.
+  </p>
+
+  <h2>macOS</h2>
+
+  <div class="mit-block">
+    <div class="mit-label">MIT original</div>
+    <p class="mit-original">Install developer tools:</p>
+    <pre class="mit-original"><code>$ xcode-select --install</code></pre>
+    <p class="mit-original">Install Homebrew:</p>
+    <pre class="mit-original"><code>$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"</code></pre>
+    <p class="mit-original">Install RISC-V compiler toolchain:</p>
+    <pre class="mit-original"><code>$ brew tap riscv/riscv
+$ brew install riscv-tools</code></pre>
+    <p class="mit-original">Add to your shell rc file:</p>
+    <pre class="mit-original"><code>PATH=$PATH:/usr/local/opt/riscv-gnu-toolchain/bin</code></pre>
+    <p class="mit-original">Install QEMU:</p>
+    <pre class="mit-original"><code>$ brew install qemu</code></pre>
+  </div>
+
+  <div class="karya-note">
+    <div class="karya-label">&#x2713; Karya — macOS</div>
+    <p>Karya's post-create hook installs everything automatically. If you need to do it manually:</p>
+    <pre><code>$ xcode-select --install
+$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code></pre>
+    <p>The tap name changed — use the current one:</p>
+    <pre><code>$ brew tap riscv-software-src/riscv
+$ brew install riscv-gnu-toolchain
+$ brew install qemu</code></pre>
+    <p>No manual PATH change needed — Homebrew wires this up automatically on Apple Silicon and Intel Macs.</p>
+  </div>
+
+  <h2>Windows</h2>
+
+  <div class="mit-block">
+    <div class="mit-label">MIT original</div>
+    <p class="mit-original">Install Windows Subsystem for Linux, then Ubuntu 20.04 from the Microsoft Store.</p>
+    <pre class="mit-original"><code>$ sudo apt-get update &amp;&amp; sudo apt-get upgrade
+$ sudo apt-get install git build-essential gdb-multiarch qemu-system-misc \
+    gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu</code></pre>
+    <p class="mit-original">Access WSL files at <code>\\wsl$\Ubuntu-20.04\home\&lt;username&gt;\</code></p>
+  </div>
+
+  <div class="karya-note">
+    <div class="karya-label">&#x2713; Karya — Windows</div>
+    <p>Same approach — WSL2 is required. Enable it from PowerShell (as administrator):</p>
+    <pre><code>wsl --install</code></pre>
+    <p>Then open an Ubuntu terminal and install karya inside WSL. All karya commands and templates work as-is under WSL2.</p>
+    <p>The apt-get command from MIT works unchanged inside WSL2 Ubuntu.</p>
+  </div>
+
+  <h2>Debian / Ubuntu (native)</h2>
+
+  <pre><code>$ sudo apt-get install git build-essential gdb-multiarch qemu-system-misc \
+    gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu</code></pre>
+
+  <div class="karya-note">
+    <div class="karya-label">&#x2713; Karya — Linux</div>
+    <p>The command above works as-is. Karya's post-create hook runs it automatically on Debian/Ubuntu.</p>
+  </div>
+
+  <h2>Arch Linux</h2>
+
+  <pre><code>$ sudo pacman -S riscv64-linux-gnu-binutils riscv64-linux-gnu-gcc \
+    riscv64-linux-gnu-gdb qemu-arch-extra</code></pre>
+
+  <h2>MIT Athena</h2>
+
+  <div class="mit-block">
+    <div class="mit-label">MIT original</div>
+    <p class="mit-original">SSH into Athena and run <code>add -f 6.828</code> each session:</p>
+    <pre class="mit-original"><code>$ ssh {kerberos}@athena.dialup.mit.edu
+$ add -f 6.828</code></pre>
+  </div>
+
+  <div class="karya-note">
+    <div class="karya-label">&#x2713; Karya — not applicable</div>
+    <p>You don't have MIT Athena access. Install locally using one of the OS-specific methods above.</p>
+  </div>
+
+  <h2>Running a Linux VM (fallback)</h2>
+  <p>If local install isn't working, use a VM:</p>
+  <ul>
+    <li><a href="https://www.virtualbox.org/wiki/Downloads" target="_blank">VirtualBox</a> — free, works on Mac/Linux/Windows</li>
+    <li>VMware Player — free for Linux/Windows</li>
+  </ul>
+  <p>Download an Ubuntu Desktop ISO, create a VM, then follow the Debian/Ubuntu instructions above.</p>
+
+  <h2 id="verify">Verify your installation</h2>
+
+  <p>Boot xv6 in QEMU:</p>
+  <pre><code># From the xv6 source directory:
+$ cd starter-code/xv6-labs-2021
+$ make qemu
+# ... lots of output ...
+init: starting sh
+$
+# Quit QEMU with: Ctrl-a  then  x</code></pre>
+
+  <div class="karya-note">
+    <div class="karya-label">&#x2713; Karya — use VS Code task</div>
+    <p>Instead of typing the command, use the VS Code task:<br>
+    <kbd>Cmd+Shift+P</kbd> → <em>Tasks: Run Task</em> → <strong>xv6: boot (make qemu)</strong></p>
+  </div>
+
+  <p>Check versions:</p>
+  <pre><code>$ qemu-system-riscv64 --version
+QEMU emulator version 5.1.0 (or newer)
+
+$ riscv64-unknown-elf-gcc --version
+riscv64-unknown-elf-gcc (GCC) 10.1.0 (or newer)</code></pre>
+
+  <p>If xv6 boots and you see the <code>$</code> prompt, you're ready. Start with <a href="labs/util.html">Lab: Utilities</a>.</p>
+</div>
+
+<footer style="max-width:860px;margin:0 auto;padding:0 1.2rem 2rem">
+  Based on <a href="https://pdos.csail.mit.edu/6.S081/2021/tools.html" target="_blank">MIT 6.S081 Tools page</a>.
+  Original &copy; MIT PDOS, <a href="https://creativecommons.org/licenses/by/3.0/us/">CC BY 3.0</a>.
+</footer>
+</body>
+</html>
