@@ -306,16 +306,91 @@ def _auto_publish(project_root: Path, uri: str, publish: bool) -> None:
         print(f"    karya publish project --uri {uri}")
         return
     print(f"\nPublishing project to GitHub...")
+    owner = gh_get_authenticated_user()
     try:
-        publish_project(uri=uri)
+        publish_project(uri=uri, owner=owner)
     except SystemExit:
         print(f"  Warning: publish failed — project has no remote yet.")
         print(f"  Run manually: karya publish project --uri {uri}")
 
 
+def _derive_repo_slug(uri_parts: list[str]) -> str:
+    return "-".join(uri_parts)
+
+
+def _clone_from_remote(uri_parts: list[str], project_root: Path, workspace_root: Path) -> bool:
+    """
+    If the expected GitHub repo already exists, clone it into project_root.
+    Returns True if the project was cloned (machine-2 path), False if remote doesn't exist.
+    """
+    if not gh_available():
+        return False
+    owner = gh_get_authenticated_user()
+    if not owner:
+        return False
+    slug = _derive_repo_slug(uri_parts)
+    repo_exists = gh_repo_exists(owner, slug)
+    if repo_exists is not True:
+        return False
+    repo_url = f"https://github.com/{owner}/{slug}.git"
+    print(f"Remote repository {owner}/{slug} already exists — cloning instead of creating fresh.")
+    project_root.parent.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        ["git", "clone", "--recurse-submodules", repo_url, str(project_root)],
+        check=False,
+    )
+    if result.returncode != 0:
+        fail(f"Failed to clone {repo_url}")
+    # Ensure all intermediate marker files exist (they're already in the cloned repo's content
+    # for the project level, but domain/collection markers may be missing on this machine).
+    current = workspace_root
+    for i, part in enumerate(uri_parts):
+        current = current / part
+        current.mkdir(parents=True, exist_ok=True)
+        partial_uri = "kosh://" + "/".join(uri_parts[: i + 1])
+        write_marker(current, segment_level(i), partial_uri)
+    print(f"Cloned '{uri_parts[-1]}' into {project_root}")
+    return True
+
+
+def _register_embedded_git_repos(project_root: Path) -> None:
+    """
+    Detect nested git repos created by post-create hooks (e.g. a cloned xv6) and
+    register them as git submodules so they appear in the parent repo correctly.
+    """
+    for git_dir in sorted(project_root.rglob(".git")):
+        if git_dir == project_root / ".git":
+            continue
+        if not git_dir.is_dir():
+            continue
+        nested_root = git_dir.parent
+        rel = str(nested_root.relative_to(project_root))
+
+        # Skip if already registered
+        gitmodules = project_root / ".gitmodules"
+        if gitmodules.exists() and rel in gitmodules.read_text(encoding="utf-8"):
+            continue
+
+        remote_url = git_remote_get_url(nested_root)
+        if not remote_url:
+            print(f"  Warning: embedded git repo at {rel} has no remote — skipping submodule registration.")
+            print(f"    Add a remote to {nested_root} then run: git submodule add <url> {rel}")
+            continue
+
+        print(f"  Registering embedded repo at '{rel}' as a git submodule ({remote_url})")
+        # Remove from index if it was staged as plain files
+        run_git_command(["rm", "--cached", "-r", rel], cwd=project_root)
+        result = run_git_command(["submodule", "add", remote_url, rel], cwd=project_root)
+        if result.returncode != 0:
+            print(f"  Warning: failed to register '{rel}' as submodule: {result.stderr.strip()}")
+            print(f"    Run manually: git submodule add {remote_url} {rel}")
+        else:
+            print(f"  Registered '{rel}' as submodule.")
+
+
 def create_project(uri: str, mode: str = "new", publish: bool = True) -> None:
     """
-    mode: "new"     — first-time create; fails if project exists (unless interrupted)
+    mode: "new"     — first-time create; if remote already exists, clone it instead
           "continue" — re-run post-create hooks on an interrupted project
           "restart"  — delete and recreate from scratch
     publish: auto-publish to GitHub after successful setup (skip with --no-publish)
@@ -371,6 +446,7 @@ def create_project(uri: str, mode: str = "new", publish: bool = True) -> None:
             hooks_ok = all(run_hook(h, "post-create", project_root) for h in hooks)
             if hooks_ok:
                 set_project_setup_status(project_root, uri, "complete")
+                _register_embedded_git_repos(project_root)
                 print(f"Setup of '{project_name}' complete.")
                 _auto_publish(project_root, uri, publish)
             else:
@@ -378,6 +454,11 @@ def create_project(uri: str, mode: str = "new", publish: bool = True) -> None:
                 print(f"  Fix the issue above, then re-run:")
                 print(f"    karya create project --uri {uri} --continue")
             return
+
+    # ── Check if remote already exists (machine-2 path) ──────────────────────
+    if mode == "new" and _clone_from_remote(uri_parts, project_root, workspace_root):
+        print(f"Project '{project_name}' is ready. Run 'karya workstate resume' to restore your last checkpoint.")
+        return
 
     # ── Fresh create ─────────────────────────────────────────────────────────
     hooks = discover_hooks(uri_parts)
@@ -453,6 +534,7 @@ def create_project(uri: str, mode: str = "new", publish: bool = True) -> None:
     hooks_ok = all(run_hook(h, "post-create", project_root) for h in hooks)
     if hooks_ok:
         set_project_setup_status(project_root, uri, "complete")
+        _register_embedded_git_repos(project_root)
         print(f"Setup of '{project_name}' complete.")
         _auto_publish(project_root, uri, publish)
     else:
@@ -530,6 +612,10 @@ def publish_project(
     git_root = find_git_root(project_root)
     remote_repo_url = discover_git_remote(git_root) if git_root else None
     published_date = datetime.date.today().isoformat()
+
+    # Auto-detect owner from gh auth when not supplied
+    if owner is None and gh_available():
+        owner = gh_get_authenticated_user()
 
     # Determine repo URL
     if repo_url_override:
@@ -832,6 +918,17 @@ def git_push_current_branch(git_root: Path) -> bool:
     return result.returncode == 0
 
 # ── github helpers ────────────────────────────────────────────────────────────
+
+def gh_get_authenticated_user() -> str | None:
+    """Return the GitHub login of the currently authenticated user, or None."""
+    result = subprocess.run(
+        ["gh", "api", "user", "--jq", ".login"],
+        capture_output=True, text=True, check=False,
+    )
+    if result.returncode == 0:
+        return result.stdout.strip() or None
+    return None
+
 
 def gh_available() -> bool:
     result = subprocess.run(["gh", "--version"], capture_output=True, text=True)
