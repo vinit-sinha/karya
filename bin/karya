@@ -335,28 +335,84 @@ def _clone_from_remote(uri_parts: list[str], project_root: Path, workspace_root:
     repo_url = f"https://github.com/{owner}/{slug}.git"
     print(f"Remote repository {owner}/{slug} already exists — cloning instead of creating fresh.")
     project_root.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
-        ["git", "clone", "--recurse-submodules", repo_url, str(project_root)],
-        check=False,
-    )
+
+    # Clone the parent repo without recursing into submodules first.
+    result = subprocess.run(["git", "clone", repo_url, str(project_root)], check=False)
     if result.returncode != 0:
         fail(f"Failed to clone {repo_url}")
-    # Ensure all intermediate marker files exist (they're already in the cloned repo's content
-    # for the project level, but domain/collection markers may be missing on this machine).
+
+    # Init submodules following the branch stored in .gitmodules (not a pinned SHA).
+    # This avoids "not our ref" errors when the submodule is on an unmerged branch.
+    sub_result = subprocess.run(
+        ["git", "submodule", "update", "--init", "--remote"],
+        cwd=str(project_root), check=False,
+    )
+    if sub_result.returncode != 0:
+        print("  Warning: one or more submodules could not be initialised.")
+        print("  Run manually once the relevant branches are pushed:")
+        print(f"    git -C {project_root} submodule update --init --remote")
+
+    # Ensure intermediate marker files exist on this machine.
     current = workspace_root
     for i, part in enumerate(uri_parts):
         current = current / part
         current.mkdir(parents=True, exist_ok=True)
         partial_uri = "kosh://" + "/".join(uri_parts[: i + 1])
         write_marker(current, segment_level(i), partial_uri)
+
     print(f"Cloned '{uri_parts[-1]}' into {project_root}")
+
+    # Offer to apply the latest workstate checkpoint (branches + uncommitted patches).
+    checkpoint_path = get_checkpoint_file(project_root, DEFAULT_CHECKPOINT_NAME)
+    if checkpoint_path.exists():
+        if ask_confirmation(
+            "Latest workstate checkpoint found. Apply it now (restore branches + uncommitted changes)?",
+            default=True,
+        ):
+            resume_workstate(checkpoint_name=DEFAULT_CHECKPOINT_NAME, apply_patch=True, project_root=project_root)
     return True
+
+
+def _install_post_push_hook(git_root: Path, project_root: Path) -> None:
+    """Install a post-push hook that auto-saves a karya workstate checkpoint."""
+    hooks_dir = git_root / ".git" / "hooks"
+    hooks_dir.mkdir(parents=True, exist_ok=True)
+    hook_path = hooks_dir / "post-push"
+    if hook_path.exists():
+        return
+
+    is_submodule = git_root != project_root
+    if is_submodule:
+        # Walk up from the submodule to find the karya project root, then save from there.
+        script = """\
+#!/bin/bash
+# Auto-save karya workstate after push (from submodule — walks up to project root)
+dir="$(pwd)"
+while [ "$dir" != "/" ]; do
+    if [ -f "$dir/.karya-project" ]; then
+        (cd "$dir" && karya workstate save --description "auto-checkpoint after push" 2>/dev/null || true)
+        break
+    fi
+    dir="$(dirname "$dir")"
+done
+"""
+    else:
+        script = """\
+#!/bin/bash
+# Auto-save karya workstate after push
+karya workstate save --description "auto-checkpoint after push" 2>/dev/null || true
+"""
+    hook_path.write_text(script, encoding="utf-8")
+    hook_path.chmod(0o755)
+    label = "submodule" if is_submodule else "project"
+    print(f"  Installed post-push workstate hook ({label}: {git_root.name})")
 
 
 def _register_embedded_git_repos(project_root: Path) -> None:
     """
-    Detect nested git repos created by post-create hooks (e.g. a cloned xv6) and
-    register them as git submodules so they appear in the parent repo correctly.
+    Detect nested git repos created by post-create hooks (e.g. a cloned xv6),
+    register them as git submodules with their active branch recorded in .gitmodules,
+    and install a post-push hook so pushes from the submodule trigger a workstate save.
     """
     for git_dir in sorted(project_root.rglob(".git")):
         if git_dir == project_root / ".git":
@@ -369,6 +425,7 @@ def _register_embedded_git_repos(project_root: Path) -> None:
         # Skip if already registered
         gitmodules = project_root / ".gitmodules"
         if gitmodules.exists() and rel in gitmodules.read_text(encoding="utf-8"):
+            _install_post_push_hook(nested_root, project_root)
             continue
 
         remote_url = git_remote_get_url(nested_root)
@@ -377,15 +434,22 @@ def _register_embedded_git_repos(project_root: Path) -> None:
             print(f"    Add a remote to {nested_root} then run: git submodule add <url> {rel}")
             continue
 
-        print(f"  Registering embedded repo at '{rel}' as a git submodule ({remote_url})")
+        current_branch = get_git_branch(nested_root)
+        print(f"  Registering embedded repo at '{rel}' as a git submodule (branch: {current_branch})")
         # Remove from index if it was staged as plain files
         run_git_command(["rm", "--cached", "-r", rel], cwd=project_root)
-        result = run_git_command(["submodule", "add", remote_url, rel], cwd=project_root)
+        # -b records the branch in .gitmodules so machine-2 clones can follow it
+        add_args = ["submodule", "add"]
+        if current_branch:
+            add_args += ["-b", current_branch]
+        add_args += [remote_url, rel]
+        result = run_git_command(add_args, cwd=project_root)
         if result.returncode != 0:
             print(f"  Warning: failed to register '{rel}' as submodule: {result.stderr.strip()}")
-            print(f"    Run manually: git submodule add {remote_url} {rel}")
+            print(f"    Run manually: git submodule add -b {current_branch} {remote_url} {rel}")
         else:
             print(f"  Registered '{rel}' as submodule.")
+            _install_post_push_hook(nested_root, project_root)
 
 
 def create_project(uri: str, mode: str = "new", publish: bool = True) -> None:
@@ -527,6 +591,7 @@ def create_project(uri: str, mode: str = "new", publish: bool = True) -> None:
         print(f"Warning: Failed to create initial commit: {commit_result.stderr.strip()}")
 
     print(f"Initialised git repository and created initial commit for '{project_name}'")
+    _install_post_push_hook(project_root, project_root)
 
     # Post-create hooks — project now exists, run from project root
     if hooks:
@@ -721,19 +786,13 @@ def get_checkpoint_patch_file(git_root: Path, checkpoint_name: str) -> Path:
     return git_root / STATE_CHECKPOINT_DIR / f"{checkpoint_name}.patch"
 
 
-def save_workstate(checkpoint_name: str | None = None, description: str | None = None) -> None:
-    git_root = find_git_root(Path.cwd())
-    if git_root is None:
-        fail("No git repository found. Run 'karya workstate save' from inside a repository.")
-
-    checkpoint = sanitize_checkpoint_name(checkpoint_name)
+def _capture_repo_state(git_root: Path, checkpoint_name: str, label: str) -> dict:
+    """Capture branch + uncommitted changes for one git repo. Returns a state dict."""
     state_dir = git_root / STATE_CHECKPOINT_DIR
     state_dir.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = get_checkpoint_file(git_root, checkpoint)
-    patch_path = get_checkpoint_patch_file(git_root, checkpoint)
+    patch_path = get_checkpoint_patch_file(git_root, f"{checkpoint_name}-{label}" if label != "main" else checkpoint_name)
 
     branch = get_git_branch(git_root) or "unknown"
-    commit_hash = get_git_commit_hash(git_root) or ""
     status_lines = list_git_status(git_root)
     uncommitted_changes = bool(status_lines)
 
@@ -755,26 +814,118 @@ def save_workstate(checkpoint_name: str | None = None, description: str | None =
     elif patch_path.exists():
         patch_path.unlink()
 
+    return {
+        "branch": branch,
+        "remote_url": git_remote_get_url(git_root) or "",
+        "uncommitted_changes": uncommitted_changes,
+        "patch_file": str(patch_path.relative_to(git_root)) if uncommitted_changes else None,
+    }
+
+
+def _list_submodules(git_root: Path) -> list[tuple[str, Path]]:
+    """Return list of (rel_path, abs_path) for all registered submodules."""
+    result = run_git_command(
+        ["submodule", "foreach", "--quiet", "--recursive", "echo $displaypath"],
+        cwd=git_root,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return []
+    submodules = []
+    for rel in result.stdout.splitlines():
+        rel = rel.strip()
+        if rel:
+            submodules.append((rel, git_root / rel))
+    return submodules
+
+
+def save_workstate(checkpoint_name: str | None = None, description: str | None = None) -> None:
+    git_root = find_git_root(Path.cwd())
+    if git_root is None:
+        fail("No git repository found. Run 'karya workstate save' from inside a repository.")
+
+    checkpoint = sanitize_checkpoint_name(checkpoint_name)
+
+    main_state = _capture_repo_state(git_root, checkpoint, "main")
+
+    submodule_states: dict[str, dict] = {}
+    for rel, sub_root in _list_submodules(git_root):
+        if sub_root.exists():
+            submodule_states[rel] = _capture_repo_state(sub_root, checkpoint, rel.replace("/", "-"))
+
     checkpoint_data = {
         "checkpoint_id": uuid.uuid4().hex,
         "checkpoint_name": checkpoint,
         "description": description or "",
         "created_at": datetime.datetime.now().isoformat(),
-        "branch": branch,
-        "head_commit": commit_hash,
-        "remote_url": git_remote_get_url(git_root) or "",
-        "uncommitted_changes": uncommitted_changes,
-        "status_lines": status_lines,
-        "patch_file": str(patch_path.relative_to(git_root)) if uncommitted_changes else None,
+        **main_state,
+        "submodules": submodule_states,
     }
+
+    checkpoint_path = get_checkpoint_file(git_root, checkpoint)
     checkpoint_path.write_text(json.dumps(checkpoint_data, indent=2), encoding="utf-8")
-    print(f"Saved work state checkpoint '{checkpoint}' to {checkpoint_path}")
-    if uncommitted_changes:
-        print(f"Uncommitted changes captured in {patch_path}")
+    print(f"Saved workstate '{checkpoint}': branch={main_state['branch']}", end="")
+    if submodule_states:
+        sub_summary = ", ".join(f"{r}@{s['branch']}" for r, s in submodule_states.items())
+        print(f", submodules=[{sub_summary}]", end="")
+    print()
+    if main_state["uncommitted_changes"]:
+        print(f"  Uncommitted changes captured in {main_state['patch_file']}")
 
 
-def resume_workstate(checkpoint_name: str | None = None, apply_patch: bool = False) -> None:
-    git_root = find_git_root(Path.cwd())
+def _restore_repo_state(git_root: Path, state: dict, label: str, apply_patch: bool) -> None:
+    """Checkout branch, pull, and optionally apply uncommitted patch for one repo."""
+    target_branch = state.get("branch", "")
+    if not target_branch or target_branch == "unknown":
+        print(f"  [{label}] No branch recorded — skipping checkout.")
+        return
+
+    current_branch = get_git_branch(git_root)
+    if current_branch != target_branch:
+        result = run_git_command(["checkout", target_branch], cwd=git_root)
+        if result.returncode != 0:
+            # Branch may not exist locally yet — try creating tracking branch
+            result = run_git_command(
+                ["checkout", "-b", target_branch, f"origin/{target_branch}"],
+                cwd=git_root,
+            )
+        if result.returncode != 0:
+            print(f"  [{label}] Warning: could not checkout '{target_branch}': {result.stderr.strip()}")
+            return
+        print(f"  [{label}] Checked out branch '{target_branch}'")
+    else:
+        print(f"  [{label}] Already on branch '{target_branch}'")
+
+    # Pull to get latest remote state
+    pull = run_git_command(["pull", "--ff-only"], cwd=git_root)
+    if pull.returncode != 0:
+        print(f"  [{label}] Warning: pull failed (non-fast-forward?): {pull.stderr.strip()}")
+
+    patch_file = state.get("patch_file")
+    if patch_file:
+        patch_path = git_root / patch_file
+        if patch_path.exists():
+            if apply_patch:
+                result = run_git_command(["apply", "--index", str(patch_path)], cwd=git_root)
+                if result.returncode != 0:
+                    print(f"  [{label}] Warning: patch did not apply cleanly: {result.stderr.strip()}")
+                    print(f"    Patch saved at: {patch_path}")
+                else:
+                    print(f"  [{label}] Applied uncommitted changes from patch.")
+            else:
+                print(f"  [{label}] Uncommitted changes patch available: {patch_path}")
+        else:
+            print(f"  [{label}] Warning: patch file recorded but not found: {patch_path}")
+
+
+def resume_workstate(
+    checkpoint_name: str | None = None,
+    apply_patch: bool = False,
+    project_root: Path | None = None,
+) -> None:
+    if project_root is not None:
+        git_root = project_root
+    else:
+        git_root = find_git_root(Path.cwd())
     if git_root is None:
         fail("No git repository found. Run 'karya workstate resume' from inside a repository.")
 
@@ -784,39 +935,16 @@ def resume_workstate(checkpoint_name: str | None = None, apply_patch: bool = Fal
         fail(f"Checkpoint not found: {checkpoint_path}")
 
     data = json.loads(checkpoint_path.read_text(encoding="utf-8"))
-    current_branch = get_git_branch(git_root)
-    print(f"Checkpoint: {data['checkpoint_name']}")
-    print(f"Created:    {data['created_at']}")
-    print(f"Branch:     {data['branch']}")
-    print(f"Commit:     {data['head_commit']}")
-    if data["remote_url"]:
-        print(f"Remote:     {data['remote_url']}")
-    print(f"Uncommitted changes saved: {data['uncommitted_changes']}")
+    print(f"Resuming workstate '{data['checkpoint_name']}' (saved {data['created_at']})")
 
-    if data["status_lines"]:
-        print("Git status:")
-        for line in data["status_lines"]:
-            print(f"  {line}")
+    _restore_repo_state(git_root, data, git_root.name, apply_patch)
 
-    if current_branch != data["branch"]:
-        print(f"\nTo resume: git checkout {data['branch']}")
-
-    if data.get("remote_url") and git_remote_get_url(git_root) != data["remote_url"]:
-        print("\nWarning: current remote differs from saved checkpoint remote.")
-
-    patch_file = data.get("patch_file")
-    if patch_file:
-        patch_path = git_root / patch_file
-        if patch_path.exists():
-            if apply_patch or ask_confirmation("Apply saved patch now?", default=False):
-                result = run_git_command(["apply", "--index", str(patch_path)], cwd=git_root)
-                if result.returncode != 0:
-                    fail(f"Failed to apply patch: {result.stderr.strip()}")
-                print(f"Applied patch from {patch_path}")
-            else:
-                print(f"Saved patch available at: {patch_path}")
+    for rel, sub_state in data.get("submodules", {}).items():
+        sub_root = git_root / rel
+        if sub_root.exists():
+            _restore_repo_state(sub_root, sub_state, rel, apply_patch)
         else:
-            print(f"Warning: saved patch file not found: {patch_path}")
+            print(f"  [{rel}] Submodule directory not found — run: git submodule update --init --remote")
 
 
 def list_workstate() -> None:
