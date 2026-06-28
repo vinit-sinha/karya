@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "xv6: build",
+      "type": "shell",
+      "command": "make",
+      "options": { "cwd": "${workspaceFolder}/kernel/xv6-riscv" },
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "xv6: clean",
+      "type": "shell",
+      "command": "make clean",
+      "options": { "cwd": "${workspaceFolder}/kernel/xv6-riscv" },
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "xv6: run (QEMU)",
+      "type": "shell",
+      "command": "make qemu",
+      "options": { "cwd": "${workspaceFolder}/kernel/xv6-riscv" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "xv6: debug (QEMU + GDB stub)",
+      "type": "shell",
+      "command": "make qemu-gdb",
+      "options": { "cwd": "${workspaceFolder}/kernel/xv6-riscv" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checkpoint: save",
+      "type": "shell",
+      "command": "karya workstate save",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checkpoint: resume",
+      "type": "shell",
+      "command": "karya workstate resume --apply",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}
