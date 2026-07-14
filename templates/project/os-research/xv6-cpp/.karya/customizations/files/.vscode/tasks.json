@@ -1,0 +1,78 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "xv6-cpp: build (gcc)",
+      "type": "shell",
+      "command": "./scripts/build.sh gcc",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "xv6-cpp: build (llvm)",
+      "type": "shell",
+      "command": "./scripts/build.sh llvm",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "xv6-cpp: clean",
+      "type": "shell",
+      "command": "cmake --build build --target clean; cmake --build build-llvm --target clean",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "xv6-cpp: run (gcc, QEMU)",
+      "type": "shell",
+      "command": "./scripts/run.sh gcc",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "xv6-cpp: run (llvm, QEMU)",
+      "type": "shell",
+      "command": "./scripts/run.sh llvm",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "xv6-cpp: debug (gcc, QEMU + GDB stub)",
+      "type": "shell",
+      "command": "./scripts/debug.sh gcc",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "xv6-cpp: debug (llvm, QEMU + GDB stub)",
+      "type": "shell",
+      "command": "./scripts/debug.sh llvm",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checkpoint: save",
+      "type": "shell",
+      "command": "karya workstate save",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checkpoint: resume",
+      "type": "shell",
+      "command": "karya workstate resume --apply",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}

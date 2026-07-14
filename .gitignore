@@ -36,6 +36,10 @@ Icon\r
 .vscode
 .idea
 
+# Allow .vscode/ inside templates/ — it's shipped content, not editor config
+!templates/**/.vscode
+!templates/**/.vscode/**
+
 # 6.S081 courseware server — runtime data files (generated per-user, not committed)
 templates/learning/mit/6s081/.karya/customizations/files/docs/.schedule-prefs.json
 templates/learning/mit/6s081/.karya/customizations/files/docs/.lab-status.json

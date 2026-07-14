@@ -1,0 +1,18 @@
+{
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "files.associations": {
+    "*.h": "cpp",
+    "*.c": "cpp"
+  },
+  "C_Cpp.default.intelliSenseMode": "gcc-arm64",
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/src"
+  ],
+  "C_Cpp.default.defines": [
+    "__riscv",
+    "__riscv_xlen=64"
+  ],
+  "workbench.startupEditor": "none"
+}
