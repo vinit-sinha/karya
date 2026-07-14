@@ -700,6 +700,13 @@ def publish_project(
     else:
         repo_url = None
 
+    # `published` tracks whether a remote is actually confirmed to exist and
+    # be configured — PROJECT.md must only claim "Published" when this is
+    # true. ask_confirmation()/ask_choice() silently return their default
+    # when stdin isn't a TTY (e.g. a scripted `karya create project` run),
+    # so without this guard a non-interactive run would print success and
+    # write a Repository: URL for a repo that was never actually created.
+    published = False
     if git_root is None:
         print("Warning: no git repository detected. Only updating metadata.")
     else:
@@ -718,16 +725,24 @@ def publish_project(
                                 fail("Failed to create GitHub repository.")
                             print(f"Created {owner_name}/{repo_name}.")
                             git_remote_add_origin(git_root, repo_url)
+                            published = True
                             if ask_confirmation("Push now?", default=True):
                                 if not git_push_current_branch(git_root):
                                     fail("Failed to push.")
+                        else:
+                            print(f"Skipped creating {owner_name}/{repo_name} "
+                                  f"(no interactive terminal, or declined). Run "
+                                  f"'karya publish project --uri {project_uri or uri}' "
+                                  f"from an interactive shell to create and push it.")
                     elif repo_exists is True:
                         if git_remote_get_url(git_root) is None:
                             git_remote_add_origin(git_root, repo_url)
+                        published = True
                         if ask_confirmation("Push to remote?", default=True):
                             if not git_push_current_branch(git_root):
                                 fail("Failed to push.")
         elif remote_repo_url is not None:
+            published = True
             remote_empty = git_remote_is_empty(git_root)
             if remote_empty is True:
                 if not ask_confirmation(f"Remote appears empty. Reuse it?"):
@@ -738,6 +753,10 @@ def publish_project(
             elif remote_empty is None:
                 if not ask_confirmation("Unable to determine remote state. Continue with metadata update?", default=True):
                     fail("Publish aborted.")
+
+    if not published:
+        print(f"Not published — metadata left unchanged.")
+        return
 
     # Update PROJECT.md
     lines = project_md_text.splitlines()

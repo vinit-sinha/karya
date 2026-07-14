@@ -1,0 +1,12 @@
+{
+  "editor.formatOnSave": true,
+  "C_Cpp.default.compilerPath": "${workspaceFolder}/toolchain/current/riscv64-unknown-elf-gcc",
+  "C_Cpp.default.intelliSenseMode": "gcc-arm64",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/kernel/xv6-riscv",
+    "${workspaceFolder}/kernel/xv6-riscv/kernel",
+    "${workspaceFolder}/kernel/xv6-riscv/user"
+  ],
+  "C_Cpp.default.defines": ["__riscv", "__riscv_xlen=64"],
+  "workbench.startupEditor": "none"
+}

@@ -1,0 +1,8 @@
+{
+  "editor.formatOnSave": true,
+  "rust-analyzer.cargo.target": "riscv64imac-unknown-none-elf",
+  "rust-analyzer.cargo.features": [],
+  "rust-analyzer.checkOnSave.command": "clippy",
+  "rust-analyzer.cargo.noDefaultFeatures": true,
+  "workbench.startupEditor": "none"
+}
