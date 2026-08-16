@@ -80,7 +80,7 @@
     .pill-in-review   { background: #dbeafe; color: #1e40af; }
     .pill-done        { background: #dcfce7; color: #166534; }
     .pill-overdue     { background: #fee2e2; color: #991b1b; }
-    .pill-merged-no-approval { background: #f3e8ff; color: #6b21a8; }
+    .pill-merged-ungated { background: #f3e8ff; color: #6b21a8; }
 
     .lab-dates { font-size: 0.8rem; color: #555; margin: 0.4rem 0; }
     .lab-dates table { width: 100%; border-collapse: collapse; }
@@ -170,7 +170,7 @@
 </div>
 
 <footer style="max-width:860px;margin:0 auto;padding:0 1.2rem 2rem">
-  Done = PR merged + approved by a co-learner.
+  Done = PR merged with its review gate cleared — green CI, or an approving review from someone else.
   Delays compared against your <a href="schedule.html">personalised schedule</a>.
 </footer>
 
@@ -212,7 +212,7 @@ function computeStatus(data, slug) {
   const ghStatus = pr?.ghStatus;
 
   if (ghStatus === 'done') return 'done';
-  if (ghStatus === 'merged_no_approval') return 'merged_no_approval';
+  if (ghStatus === 'merged_ungated') return 'merged_ungated';
   if (ghStatus === 'in_review') return 'in_review';
 
   // Local-only states
@@ -228,7 +228,7 @@ function computeStatus(data, slug) {
 function statusPill(status) {
   const map = {
     done:               ['pill-done',        '✓ Done'],
-    merged_no_approval: ['pill-merged-no-approval', '⚠ Merged (awaiting peer review)'],
+    merged_ungated:     ['pill-merged-ungated', '⚠ Merged (no review gate)'],
     in_review:          ['pill-in-review',   '⟳ In Review'],
     in_progress:        ['pill-in-progress', '● In Progress'],
     overdue:            ['pill-overdue',      '! Overdue'],
@@ -241,7 +241,7 @@ function statusPill(status) {
 function cardClass(status) {
   return {
     done:               'card-done',
-    merged_no_approval: 'card-in-review',
+    merged_ungated:     'card-in-review',
     in_review:          'card-in-review',
     in_progress:        'card-in-progress',
     overdue:            'card-overdue',
@@ -342,7 +342,7 @@ async function loadStatus() {
     const data   = labs[lab.slug] || {};
     const status = computeStatus(data, lab.slug);
     if (status === 'done')               done++;
-    else if (status === 'in_review' || status === 'merged_no_approval') inReview++;
+    else if (status === 'in_review' || status === 'merged_ungated') inReview++;
     else if (status === 'in_progress')   inProg++;
     if (status === 'overdue')            overdue++;
   }

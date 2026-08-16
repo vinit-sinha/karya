@@ -65,7 +65,7 @@ def _get_github_prs(repo):
                 "gh", "pr", "list",
                 "--repo", repo,
                 "--state", "all",
-                "--json", "number,title,headRefName,state,mergedAt,reviews,author,url",
+                "--json", "number,title,headRefName,state,mergedAt,reviews,author,url,statusCheckRollup",
                 "--limit", "100",
             ],
             capture_output=True, text=True, timeout=20
@@ -85,15 +85,40 @@ def _is_approved_by_other(pr):
             return True
     return False
 
+def _checks_passed(pr):
+    """True if the PR ran status checks and all of them succeeded.
+
+    A PR with no checks configured returns False — "nothing ran" is not a
+    passing gate.
+    """
+    rollup = pr.get("statusCheckRollup") or []
+    if not rollup:
+        return False
+    for check in rollup:
+        # CheckRun entries carry `conclusion`; older StatusContext entries `state`.
+        outcome = (check.get("conclusion") or check.get("state") or "").upper()
+        if outcome not in ("SUCCESS", "NEUTRAL", "SKIPPED"):
+            return False
+    return True
+
+def _gate_cleared(pr):
+    """True if this PR passed *a* review gate before being merged.
+
+    Originally this meant "approved by a co-learner". Studying solo, that is
+    unreachable — GitHub does not let an author approve their own PR — so every
+    merged lab would sit at 'merged_ungated' forever. Green CI counts as the
+    gate too: it is the reviewer that is actually present.
+    """
+    return _is_approved_by_other(pr) or _checks_passed(pr)
+
 def _lab_status_from_pr(pr):
     """Derive lab status fields from a GitHub PR dict."""
     state = pr.get("state", "")
     merged_at = pr.get("mergedAt")
-    approved = _is_approved_by_other(pr)
-    if state == "MERGED" and approved:
+    if state == "MERGED" and _gate_cleared(pr):
         return "done", merged_at
-    if state == "MERGED" and not approved:
-        return "merged_no_approval", merged_at
+    if state == "MERGED":
+        return "merged_ungated", merged_at
     if state == "OPEN":
         return "in_review", None
     return None, None
@@ -188,6 +213,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "state":     pr.get("state"),
                     "mergedAt":  merged_at,
                     "approved":  _is_approved_by_other(pr),
+                    "checksPassed": _checks_passed(pr),
                     "ghStatus":  gh_status,
                     "author":    (pr.get("author") or {}).get("login"),
                     "approvers": [
