@@ -21,20 +21,25 @@ on:
 
 jobs:
   review:
-    # Skip silently when no credential is configured.
-    if: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' || secrets.ANTHROPIC_API_KEY != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
       id-token: write
+    # The `secrets` context is NOT available in a job-level `if:` — putting it
+    # there makes the whole file fail validation. It IS available in job-level
+    # `env`, and step-level `if` can read `env`, so the gate goes on the steps.
+    env:
+      HAS_CREDENTIAL: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' || secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       - name: Checkout repository
+        if: env.HAS_CREDENTIAL == 'true'
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
       - name: Review
+        if: env.HAS_CREDENTIAL == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           # Whichever one is set; the action takes either.

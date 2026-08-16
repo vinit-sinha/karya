@@ -31,6 +31,11 @@ The gate is therefore automated, and it is not optional:
 1. **CI is green.** `.github/workflows/ci.yml` — the test suite passes on both
    the advertised Python floor and current Python, and every hook script parses.
    This part is enforced by the machine.
+
+   Check it with `gh run list --branch <branch>`, **not** `gh pr checks`. A
+   workflow file that fails GitHub's own validation produces a failed run that
+   never becomes a PR check, so `gh pr checks` reports all-green while two
+   workflows are broken. That has already happened once.
 2. **A review pass has run and its findings are posted on the PR.** Run it
    yourself before merging:
 
