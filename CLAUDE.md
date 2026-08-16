@@ -30,15 +30,31 @@ The gate is therefore automated, and it is not optional:
 
 1. **CI is green.** `.github/workflows/ci.yml` — the test suite passes on both
    the advertised Python floor and current Python, and every hook script parses.
-2. **The Claude review has run and been answered.**
-   `.github/workflows/claude-review.yml` posts findings on every PR. Every
-   finding gets a reply: fixed, or a one-line reason it is not being fixed.
-   Silence is not an answer. Use `@claude` in a comment to push back — a review
-   you disagree with is a conversation, not a verdict.
+   This part is enforced by the machine.
+2. **A review pass has run and its findings are posted on the PR.** Run it
+   yourself before merging:
+
+   ```bash
+   /code-review ultra <PR#> --post
+   ```
+
+   `--post` puts the findings on the PR as a comment, which is the point: the
+   review has to leave an artifact you can read later, not evaporate with the
+   session. `/code-review <PR#> --comment` is the lighter, faster version.
+   `/security-review` as well for anything touching subprocess calls, network,
+   `gh`, or the install path.
 3. **Reproduced findings are resolved.** A finding the reviewer *reproduced* is
    a blocker. A finding it merely suspects is a question you may answer and move
    on from. This distinction is the whole gate: it is what stops an automated
-   reviewer from becoming either a rubber stamp or a source of busywork.
+   reviewer from becoming either a rubber stamp or a source of busywork. Every
+   finding gets a reply — fixed, or one line on why not. Silence is not an
+   answer.
+
+**Step 2 is not enforced by anything.** It depends on you running it, which is
+the honest weak point of a one-person gate. `.github/workflows/claude-review.yml`
+automates it and removes that dependency, but needs a `CLAUDE_CODE_OAUTH_TOKEN`
+or `ANTHROPIC_API_KEY` repository secret; until one exists the job skips rather
+than fails. Adding it is the single highest-value upgrade to this workflow.
 
 **Behaviour changes need a test.** `tests/test_karya.py` is the only safety net
 this repo has. Run it before pushing:

@@ -1,12 +1,19 @@
 name: Claude PR Review
 
-# Karya is maintained by one person. This job is the standing second reader —
-# the replacement for the co-reviewer the git workflow used to assume. It does
-# not approve or merge anything; it posts findings, and the merge decision
-# stays human. See CLAUDE.md.
+# Karya is maintained by one person. This job is the OPTIONAL automatic second
+# reader. It does not approve or merge anything; it posts findings, and the
+# merge decision stays human. See CLAUDE.md.
 #
-# Setup (once): run `/install-github-app` from Claude Code in the terminal, or
-# add an ANTHROPIC_API_KEY repository secret manually.
+# Until a credential exists this job SKIPS rather than fails — a permanently red
+# check is worse than no check, because it trains you to ignore red. The gate
+# without it is CI plus a local `/code-review` pass posted to the PR; see
+# CLAUDE.md. This is an upgrade, not a prerequisite.
+#
+# To turn it on, add ONE repository secret:
+#   CLAUDE_CODE_OAUTH_TOKEN  — Pro/Max subscription; generate with
+#                              `claude setup-token` (needs the claude CLI)
+#   ANTHROPIC_API_KEY        — API billing account
+# Or run `/install-github-app` from Claude Code in a terminal, which does it.
 
 on:
   pull_request:
@@ -14,6 +21,8 @@ on:
 
 jobs:
   review:
+    # Skip silently when no credential is configured.
+    if: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' || secrets.ANTHROPIC_API_KEY != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,6 +37,8 @@ jobs:
       - name: Review
         uses: anthropics/claude-code-action@v1
         with:
+          # Whichever one is set; the action takes either.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           track_progress: true
 
