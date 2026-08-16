@@ -1,0 +1,62 @@
+name: CI
+
+# The automated half of the review gate. See CLAUDE.md — a PR merges when this
+# is green and the Claude review has been read and answered.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  tests:
+    name: tests (python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.9 is the floor advertised in README.md; the newest is what the
+        # author actually runs. Both must pass or the floor is a fiction.
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Show tool versions
+        run: |
+          python3 --version
+          git --version
+          bash --version | head -1
+
+      - name: Run test suite
+        # No git identity is configured on a fresh runner; the suite sets its
+        # own per-test via GIT_AUTHOR_* so this stays hermetic.
+        run: python3 -m unittest discover -s tests -v
+
+  shell:
+    name: shell hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Syntax-check every hook script
+        # Blocking. A hook that does not parse is a project that fails to
+        # scaffold, and there is no other verification of templates/ at all.
+        run: |
+          status=0
+          for script in $(find templates -name '*.sh') install.sh; do
+            bash -n "$script" || { echo "::error file=$script::bash syntax error"; status=1; }
+          done
+          exit $status
+
+      - name: shellcheck (advisory)
+        # Advisory on purpose: templates/ carries ~1.7k lines of bash written
+        # before any linter ran over it. Work the backlog down, then delete
+        # continue-on-error and make this blocking.
+        continue-on-error: true
+        run: |
+          shellcheck --severity=error --format=gcc \
+            $(find templates -name '*.sh') install.sh
