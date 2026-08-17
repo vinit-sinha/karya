@@ -28,8 +28,8 @@ against a kernel that doesn't boot.
 **3. Shell / functional smoke test**
 - Core userland commands work: `ls`, `echo`, `mkdir`, `rm`
 - Fork/exec works (running any user program at all proves this)
-- Pipes work (`echo hi | cat`)
-- Filesystem round-trip: write a file, read it back, contents match
+- Pipes work — see the `smoke` sentinel below
+- Filesystem round-trip — see the `smoke` sentinel below
 
 **4. xv6's own test suites** — the real correctness bar. This is userland
 C/RISC-V code, identical across all four tracks, so it doubles as a
@@ -58,19 +58,26 @@ implements at `scripts/`, rather than one script assuming `make`:
 
 | Script | Contract |
 |---|---|
-| `scripts/build.sh` | Builds the kernel using `toolchain/current/` (or the track's own toolchain layout). Exit 0 on success. |
-| `scripts/run.sh` | Boots the built kernel in QEMU, `-nographic`, interactive. |
-| `scripts/test.sh [tier]` | Drives `run.sh` non-interactively (e.g. via `expect`) and asserts on the sentinel strings below. `tier` is one of `boot`, `smoke`, `usertests`, `forktest`, `grind`, `all` (`all` = everything except `grind`, which is opt-in since it's a soak test, not a pass/fail check). Exit 0 = tier passed, non-zero = failed, with a `[PASS]`/`[FAIL]` line per assertion on stdout. |
+| `scripts/build.sh [variant]` | Builds the kernel using `toolchain/current/` (or the track's own toolchain layout). `variant` is a no-op for tracks with a single toolchain. `xv6-c-cmake` is the one track where it's load-bearing: that track exists specifically to compare compilers, so its `build.sh [gcc\|llvm]` builds one of two side-by-side outputs (default `gcc`) — every tier for that track must be run against **both** variants, or the `llvm` half is never exercised. Exit 0 on success. |
+| `scripts/run.sh [variant]` | Boots the built kernel in QEMU, `-nographic`, interactive. Same `variant` rule as `build.sh`. |
+| `scripts/test.sh [tier] [variant]` | Drives `run.sh` non-interactively (e.g. via `expect`) and asserts on the sentinel strings below. `tier` is one of `boot`, `smoke`, `usertests`, `forktest`, `grind`, `all` (`all` = everything except `grind`, which is opt-in since it's a soak test, not a pass/fail check). Exit 0 = tier passed, non-zero = failed, with a `[PASS]`/`[FAIL]` line per assertion on stdout. **Not yet implemented in any track** — only `build.sh`, `run.sh`, and (except `xv6-rust`) `debug.sh` exist today. This row is the contract the first `test.sh` should satisfy, not a description of code already checked in. |
 
 Sentinel strings every track's `test.sh` should key off (from upstream xv6
-source, not track-specific):
+source or fixed by this doc, not track-specific):
 
 - Boot success: `init: starting sh`, then `$ `
 - Any-tier failure: `panic:` anywhere in output — always fails immediately,
   regardless of tier
+- Smoke tier: pipe check runs `echo KARYA_PIPE_OK | cat` and matches
+  `^KARYA_PIPE_OK$`; filesystem round-trip writes the token `KARYA_FS_OK` to
+  a scratch file and matches the same token back on `cat`. These are fixed
+  by this doc precisely so the four independently-authored `test.sh` scripts
+  produce diffable output — don't invent per-track tokens.
 - `usertests` success: `ALL TESTS PASSED`
 - `forktest` success: `fork test OK`
 
-See `xv6-c/scripts/test.sh` for the reference implementation — the other
-tracks' `test.sh` should produce the same tier names and PASS/FAIL output
-shape, even though the build step underneath differs.
+No track has a `test.sh` yet — this section defines the contract the first
+one written should satisfy. Once `xv6-c/scripts/test.sh` exists, treat it as
+the reference implementation: the other tracks' `test.sh` should produce the
+same tier names and PASS/FAIL output shape, even though the build step
+underneath differs.
